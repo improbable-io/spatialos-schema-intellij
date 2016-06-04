@@ -1,0 +1,31 @@
+<idea-plugin version="2">
+  <id>com.improbable.spatialos.schema.intellij</id>
+  <name>SpatialOS Schema IntelliJ</name>
+  <version>1.0</version>
+  <vendor email="support@improbable.io" url="http://spatial.improbable.io">Improbable</vendor>
+
+  <description><![CDATA[
+      IntelliJ plugin for the SpatialOS schema language.
+    ]]></description>
+
+  <change-notes><![CDATA[
+      Prototype version.
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="141.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <depends>com.intellij.modules.lang</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+  </actions>
+
+</idea-plugin>
