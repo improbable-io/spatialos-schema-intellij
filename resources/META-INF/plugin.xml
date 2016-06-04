@@ -1,8 +1,9 @@
 <idea-plugin version="2">
   <id>com.improbable.spatialos.schema.intellij</id>
   <name>SpatialOS Schema IntelliJ</name>
-  <version>1.0</version>
+  <version>0.1</version>
   <vendor email="support@improbable.io" url="http://spatial.improbable.io">Improbable</vendor>
+  <category>Custom Languages</category>
 
   <description><![CDATA[
       IntelliJ plugin for the SpatialOS schema language.
@@ -21,7 +22,7 @@
   <depends>com.intellij.modules.lang</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <!-- Add your extensions here -->
+    <fileTypeFactory implementation="com.improbable.spatialos.schema.intellij.SchemaFileTypeFactory"/>
   </extensions>
 
   <actions>
