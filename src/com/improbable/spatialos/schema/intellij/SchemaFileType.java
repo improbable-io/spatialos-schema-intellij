@@ -7,11 +7,10 @@ import javax.swing.Icon;
 
 public class SchemaFileType extends LanguageFileType {
     public static final SchemaFileType SCHEMA_FILE_TYPE = new SchemaFileType();
-    public static final Language SCHEMA_LANGUAGE = SCHEMA_FILE_TYPE.getLanguage();
     public static final String[] DEFAULT_ASSOCIATED_EXTENSIONS = new String[]{SCHEMA_FILE_TYPE.getDefaultExtension()};
 
     private SchemaFileType(){
-        super(new SchemaLanguage());
+        super(SchemaLanguage.SCHEMA_LANGUAGE);
     }
 
     @Override
