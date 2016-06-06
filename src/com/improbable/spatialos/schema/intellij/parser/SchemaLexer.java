@@ -17,12 +17,14 @@ public class SchemaLexer extends Lexer {
     }
 
     public static SchemaLexer SCHEMA_LEXER = new SchemaLexer();
+    public static IElementType COMMENT = new Token("COMMENT");
     public static IElementType IDENTIFIER = new Token("IDENTIFIER");
     public static IElementType INTEGER = new Token("INTEGER");
     public static IElementType STRING = new Token("STRING");
     public static IElementType SYMBOL = new Token("SYMBOL");
 
-    private static Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+|//[^\n]*\n|/\\*([^*]|\\*[^/])*\\*/");
+    private static Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static Pattern COMMENT_PATTERN = Pattern.compile("//[^\n]*|/\\*([^*]|\\*[^/])*(\\*/|$)");
     private static Pattern IDENTIFIER_PATTERN = Pattern.compile("\\.?[_a-zA-Z][_a-zA-Z0-9]*(\\.[_a-zA-Z][_a-zA-Z0-9]*)*");
     private static Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
     private static Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"");
@@ -42,6 +44,7 @@ public class SchemaLexer extends Lexer {
             return;
         }
         if (!checkCurrentToken(WHITESPACE_PATTERN, TokenType.WHITE_SPACE) &&
+            !checkCurrentToken(COMMENT_PATTERN, COMMENT) &&
             !checkCurrentToken(IDENTIFIER_PATTERN, IDENTIFIER) &&
             !checkCurrentToken(INTEGER_PATTERN, INTEGER) &&
             !checkCurrentToken(STRING_PATTERN, STRING) &&

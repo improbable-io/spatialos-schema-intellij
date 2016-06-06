@@ -23,7 +23,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <fileTypeFactory implementation="com.improbable.spatialos.schema.intellij.SchemaFileTypeFactory"/>
-    <lang.syntaxHighlighterFactory implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaSyntaxHighlighterFactory"/>
+    <lang.syntaxHighlighterFactory language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaSyntaxHighlighterFactory"/>
   </extensions>
 
   <actions>

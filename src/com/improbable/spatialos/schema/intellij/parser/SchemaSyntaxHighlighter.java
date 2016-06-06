@@ -12,12 +12,12 @@ public class SchemaSyntaxHighlighter extends SyntaxHighlighterBase {
     public static SchemaSyntaxHighlighter SCHEMA_SYNTAX_HIGHLIGHTER = new SchemaSyntaxHighlighter();
 
     private static TextAttributesKey[] BAD_CHARACTER = {HighlighterColors.BAD_CHARACTER};
-    private static TextAttributesKey[] WHITESPACE = {HighlighterColors.TEXT};
+    private static TextAttributesKey[] COMMENT = {DefaultLanguageHighlighterColors.LINE_COMMENT};
     private static TextAttributesKey[] IDENTIFIER = {DefaultLanguageHighlighterColors.CLASS_NAME};
     private static TextAttributesKey[] INTEGER = {DefaultLanguageHighlighterColors.NUMBER};
     private static TextAttributesKey[] STRING = {DefaultLanguageHighlighterColors.STRING};
     private static TextAttributesKey[] SYMBOL = {DefaultLanguageHighlighterColors.BRACES};
-    private static TextAttributesKey[] NONE = {};
+    private static TextAttributesKey[] NONE = {HighlighterColors.TEXT};
 
     @Override
     public Lexer getHighlightingLexer() {
@@ -29,11 +29,8 @@ public class SchemaSyntaxHighlighter extends SyntaxHighlighterBase {
         if (element == TokenType.BAD_CHARACTER) {
             return BAD_CHARACTER;
         }
-        if (element == TokenType.WHITE_SPACE) {
-            return WHITESPACE;
-        }
-        if (element == SchemaLexer.IDENTIFIER) {
-            return IDENTIFIER;
+        if (element == SchemaLexer.COMMENT) {
+            return COMMENT;
         }
         if (element == SchemaLexer.INTEGER) {
             return INTEGER;
