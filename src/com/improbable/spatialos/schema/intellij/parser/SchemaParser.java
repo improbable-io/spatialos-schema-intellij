@@ -125,16 +125,8 @@ public class SchemaParser implements PsiParser {
             return text == null ? "" : text.substring(1, text.length() - 2);
         }
 
-        private boolean isIdentifier() {
-            return builder.getTokenType() == SchemaLexer.IDENTIFIER;
-        }
-
-        private boolean isInteger() {
-            return builder.getTokenType() == SchemaLexer.INTEGER;
-        }
-
-        private boolean isString() {
-            return builder.getTokenType() == SchemaLexer.STRING;
+        private boolean isToken(IElementType token) {
+            return builder.getTokenType() == token;
         }
 
         private boolean isIdentifier(@NotNull String identifier) {
@@ -158,7 +150,7 @@ public class SchemaParser implements PsiParser {
         private void parsePackageDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.STATEMENT, "Expected a package name after '%s'.", KEYWORD_PACKAGE);
                 return;
             }
@@ -174,7 +166,7 @@ public class SchemaParser implements PsiParser {
         private void parseImportDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isString()) {
+            if (!isToken(SchemaLexer.STRING)) {
                 error(marker, Construct.STATEMENT, "Expected a quoted filename after '%s'.", KEYWORD_IMPORT);
                 return;
             }
@@ -191,7 +183,7 @@ public class SchemaParser implements PsiParser {
         private void parseOptionDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.STATEMENT, "Expected identifier after '%s'.", KEYWORD_OPTION);
                 return;
             }
@@ -202,7 +194,7 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             consumeTokenAs(null);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.STATEMENT, "Expected option value after '%s %s = '.", KEYWORD_OPTION, name);
                 return;
             }
@@ -220,13 +212,13 @@ public class SchemaParser implements PsiParser {
             PsiBuilder.Marker typeMarker = builder.mark();
             String name = getIdentifier();
             consumeTokenAs(TYPE_NAME);
-            if (!isSymbol('<')) {
+            if (!isToken(SchemaLexer.LANGLE)) {
                 typeMarker.done(FIELD_TYPE);
                 return name;
             }
             name = name + '<';
             consumeTokenAs(null);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 typeMarker.drop();
                 error(marker, Construct.STATEMENT, "Expected typename after '%s<'.", name);
                 return null;
@@ -234,7 +226,7 @@ public class SchemaParser implements PsiParser {
             name = name + getIdentifier();
             consumeTokenAs(TYPE_PARAMETER_NAME);
             while (true) {
-                if (isSymbol('>')) {
+                if (isToken(SchemaLexer.RANGLE)) {
                     name = name + '>';
                     consumeTokenAs(null);
                     typeMarker.done(FIELD_TYPE);
@@ -243,7 +235,7 @@ public class SchemaParser implements PsiParser {
                 if (isSymbol(',')) {
                     name = name + ", ";
                     consumeTokenAs(null);
-                    if (!isIdentifier()) {
+                    if (!isToken(SchemaLexer.IDENTIFIER)) {
                         typeMarker.drop();
                         error(marker, Construct.STATEMENT, "Expected typename after ','.");
                         return null;
@@ -269,7 +261,7 @@ public class SchemaParser implements PsiParser {
                 marker.done(FIELD_DEFINITION);
                 return;
             }
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.STATEMENT, "Expected ';' or field name after '%s'.", typeName);
                 return;
             }
@@ -284,7 +276,7 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             consumeTokenAs(null);
-            if (!isInteger()) {
+            if (!isToken(SchemaLexer.INTEGER)) {
                 error(marker, Construct.STATEMENT, "Expected field number after '%s %s = '.", typeName, fieldName);
                 return;
             }
@@ -300,7 +292,7 @@ public class SchemaParser implements PsiParser {
         }
 
         private void parseEnumContents() {
-            while (isIdentifier()) {
+            while (isToken(SchemaLexer.IDENTIFIER)) {
                 PsiBuilder.Marker marker = builder.mark();
                 String name = getIdentifier();
                 consumeTokenAs(FIELD_NAME);
@@ -309,7 +301,7 @@ public class SchemaParser implements PsiParser {
                     continue;
                 }
                 consumeTokenAs(null);
-                if (!isInteger()) {
+                if (!isToken(SchemaLexer.INTEGER)) {
                     error(marker, Construct.STATEMENT, "Expected integer enum value after '%s = '.", name);
                     continue;
                 }
@@ -329,7 +321,7 @@ public class SchemaParser implements PsiParser {
                 if (isIdentifier(KEYWORD_OPTION)) {
                     PsiBuilder.Marker marker = builder.mark();
                     builder.advanceLexer();
-                    boolean lookaheadIsOption = !isSymbol('<');
+                    boolean lookaheadIsOption = !isToken(SchemaLexer.LANGLE);
                     marker.rollbackTo();
                     if (lookaheadIsOption) {
                         parseOptionDefinition();
@@ -344,7 +336,7 @@ public class SchemaParser implements PsiParser {
                     parseTypeDefinition();
                     continue;
                 }
-                if (isIdentifier()) {
+                if (isToken(SchemaLexer.IDENTIFIER)) {
                     parseFieldDefinition();
                     continue;
                 }
@@ -360,7 +352,7 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             consumeTokenAs(null);
-            if (!isInteger()) {
+            if (!isToken(SchemaLexer.INTEGER)) {
                 error(marker, Construct.STATEMENT, "Expected integer ID value after '%s = '.", KEYWORD_ID);
                 return;
             }
@@ -379,7 +371,7 @@ public class SchemaParser implements PsiParser {
                 if (isIdentifier(KEYWORD_OPTION)) {
                     PsiBuilder.Marker marker = builder.mark();
                     builder.advanceLexer();
-                    boolean lookaheadIsOption = !isSymbol('<');
+                    boolean lookaheadIsOption = !isToken(SchemaLexer.LANGLE);
                     marker.rollbackTo();
                     if (lookaheadIsOption) {
                         parseOptionDefinition();
@@ -390,7 +382,7 @@ public class SchemaParser implements PsiParser {
                     parseComponentIdDefinition();
                     continue;
                 }
-                if (isIdentifier()) {
+                if (isToken(SchemaLexer.IDENTIFIER)) {
                     parseFieldDefinition();
                     continue;
                 }
@@ -401,19 +393,19 @@ public class SchemaParser implements PsiParser {
         private void parseEnumDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_ENUM);
                 return;
             }
             String name = getIdentifier();
             consumeTokenAs(DEFINITION_NAME);
-            if (!isSymbol('{')) {
+            if (!isToken(SchemaLexer.LBRACE)) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_ENUM, name);
                 return;
             }
             consumeTokenAs(null);
             parseEnumContents();
-            if (!isSymbol('}')) {
+            if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_ENUM, name);
                 return;
             }
@@ -424,19 +416,19 @@ public class SchemaParser implements PsiParser {
         private void parseTypeDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_TYPE);
                 return;
             }
             String name = getIdentifier();
             consumeTokenAs(DEFINITION_NAME);
-            if (!isSymbol('{')) {
+            if (!isToken(SchemaLexer.LBRACE)) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_TYPE, name);
                 return;
             }
             consumeTokenAs(null);
             parseTypeContents();
-            if (!isSymbol('}')) {
+            if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_TYPE, name);
                 return;
             }
@@ -447,19 +439,19 @@ public class SchemaParser implements PsiParser {
         private void parseComponentDefinition() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(KEYWORD);
-            if (!isIdentifier()) {
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_COMPONENT);
                 return;
             }
             String name = getIdentifier();
             consumeTokenAs(DEFINITION_NAME);
-            if (!isSymbol('{')) {
+            if (!isToken(SchemaLexer.LBRACE)) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_COMPONENT, name);
                 return;
             }
             consumeTokenAs(null);
             parseComponentContents();
-            if (!isSymbol('}')) {
+            if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_COMPONENT, name);
                 return;
             }

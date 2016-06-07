@@ -17,13 +17,21 @@ public class SchemaLexer extends Lexer {
     public static IElementType INTEGER = new Token("integer");
     public static IElementType STRING = new Token("string");
     public static IElementType SYMBOL = new Token("symbol");
+    public static IElementType LBRACE = new Token("{");
+    public static IElementType RBRACE = new Token("}");
+    public static IElementType LANGLE = new Token("<");
+    public static IElementType RANGLE = new Token(">");
 
     private static Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
     private static Pattern COMMENT_PATTERN = Pattern.compile("//[^\n]*|/\\*([^*]|\\*[^/])*(\\*/|$)");
     private static Pattern IDENTIFIER_PATTERN = Pattern.compile("\\.|\\.?[_a-zA-Z][_a-zA-Z0-9]*(\\.([_a-zA-Z][_a-zA-Z0-9]*)?)*");
     private static Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
     private static Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
-    private static Pattern SYMBOL_PATTERN = Pattern.compile(",|=|;|\\{|\\}|<|>");
+    private static Pattern SYMBOL_PATTERN = Pattern.compile(",|=|;");
+    private static Pattern LBRACE_PATTERN = Pattern.compile("\\{");
+    private static Pattern RBRACE_PATTERN = Pattern.compile("}");
+    private static Pattern LANGLE_PATTERN = Pattern.compile("<");
+    private static Pattern RANGLE_PATTERN = Pattern.compile(">");
 
     private static class Token extends IElementType {
         public Token(String debugName) {
@@ -49,7 +57,11 @@ public class SchemaLexer extends Lexer {
             !checkCurrentToken(IDENTIFIER_PATTERN, IDENTIFIER) &&
             !checkCurrentToken(INTEGER_PATTERN, INTEGER) &&
             !checkCurrentToken(STRING_PATTERN, STRING) &&
-            !checkCurrentToken(SYMBOL_PATTERN, SYMBOL)) {
+            !checkCurrentToken(SYMBOL_PATTERN, SYMBOL) &&
+            !checkCurrentToken(LBRACE_PATTERN, LBRACE) &&
+            !checkCurrentToken(RBRACE_PATTERN, RBRACE) &&
+            !checkCurrentToken(LANGLE_PATTERN, LANGLE) &&
+            !checkCurrentToken(RANGLE_PATTERN, RANGLE)) {
             currentTokenEnd = 1 + currentTokenStart;
             currentToken = TokenType.BAD_CHARACTER;
         }
