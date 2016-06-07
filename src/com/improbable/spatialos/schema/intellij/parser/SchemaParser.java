@@ -19,16 +19,35 @@ public class SchemaParser implements PsiParser {
     public static String KEYWORD_OPTION = "option";
     public static String KEYWORD_ID = "id";
 
+    public static IElementType INCOMPLETE = new Node("incomplete");
+    public static IElementType KEYWORD = new Node("keyword");
+    public static IElementType DEFINITION_NAME = new Node("definition name");
+
     public static IElementType PACKAGE_DEFINITION = new Node("package definition");
+    public static IElementType PACKAGE_NAME = new Node("package name");
+
     public static IElementType IMPORT_DEFINITION = new Node("import definition");
+    public static IElementType IMPORT_FILENAME = new Node("import filename");
+
     public static IElementType OPTION_DEFINITION = new Node("option definition");
-    public static IElementType FIELD_DEFINITION = new Node("field definition");
-    public static IElementType COMPONENT_DEFINITION = new Node("component definition");
-    public static IElementType COMPONENT_ID_DEFINITION = new Node("component id definition");
+    public static IElementType OPTION_NAME = new Node("option name");
+    public static IElementType OPTION_VALUE = new Node("option value");
+
+    public static IElementType TYPE_NAME = new Node("type name");
+    public static IElementType TYPE_PARAMETER_NAME = new Node("type parameter name");
+
+    public static IElementType FIELD_TYPE = new Node("field type");
+    public static IElementType FIELD_NAME = new Node("field name");
+    public static IElementType FIELD_NUMBER = new Node("field number");
+
     public static IElementType ENUM_DEFINITION = new Node("enum definition");
     public static IElementType ENUM_VALUE_DEFINITION = new Node("enum value definition");
+
     public static IElementType TYPE_DEFINITION = new Node("type definition");
-    public static IElementType INCOMPLETE = new Node("incomplete");
+    public static IElementType FIELD_DEFINITION = new Node("field definition");
+
+    public static IElementType COMPONENT_DEFINITION = new Node("component definition");
+    public static IElementType COMPONENT_ID_DEFINITION = new Node("component id definition");
 
     private static class Node extends IElementType {
         public Node(String debugName) {
@@ -128,98 +147,112 @@ public class SchemaParser implements PsiParser {
                     builder.getTokenText() != null && builder.getTokenText().equals(Character.toString(c));
         }
 
+        private void consumeTokenAs(@Nullable IElementType nodeType) {
+            PsiBuilder.Marker marker = nodeType == null ? null : builder.mark();
+            builder.advanceLexer();
+            if (marker != null) {
+                marker.done(nodeType);
+            }
+        }
+
         private void parsePackageDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isIdentifier()) {
                 error(marker, Construct.STATEMENT, "Expected a package name after '%s'.", KEYWORD_PACKAGE);
                 return;
             }
-            String packageName = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(PACKAGE_NAME);
             if (!isSymbol(';')) {
                 error(marker, Construct.STATEMENT, "Expected ';' after %s definition.", KEYWORD_PACKAGE);
+                return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(PACKAGE_DEFINITION);
         }
 
         private void parseImportDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isString()) {
                 error(marker, Construct.STATEMENT, "Expected a quoted filename after '%s'.", KEYWORD_IMPORT);
                 return;
             }
             String filename = getString();
-            builder.advanceLexer();
+            consumeTokenAs(IMPORT_FILENAME);
             if (!isSymbol(';')) {
                 error(marker, Construct.STATEMENT, "Expected ';' after '%s \"%s\"'.", KEYWORD_IMPORT, filename);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(IMPORT_DEFINITION);
         }
 
         private void parseOptionDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isIdentifier()) {
                 error(marker, Construct.STATEMENT, "Expected identifier after '%s'.", KEYWORD_OPTION);
                 return;
             }
             String name = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(OPTION_NAME);
             if (!isSymbol('=')) {
                 error(marker, Construct.STATEMENT, "Expected '=' after '%s %s'.", KEYWORD_OPTION, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             if (!isIdentifier()) {
                 error(marker, Construct.STATEMENT, "Expected option value after '%s %s = '.", KEYWORD_OPTION, name);
                 return;
             }
             String value = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(OPTION_VALUE);
             if (!isSymbol(';')) {
                 error(marker, Construct.STATEMENT, "Expected ';' after '%s %s = %s'.", KEYWORD_OPTION, name, value);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(OPTION_DEFINITION);
         }
 
         private @Nullable String parseTypeName(@NotNull PsiBuilder.Marker marker) {
+            PsiBuilder.Marker typeMarker = builder.mark();
             String name = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(TYPE_NAME);
             if (!isSymbol('<')) {
+                typeMarker.done(FIELD_TYPE);
                 return name;
             }
             name = name + '<';
-            builder.advanceLexer();
+            consumeTokenAs(null);
             if (!isIdentifier()) {
+                typeMarker.drop();
                 error(marker, Construct.STATEMENT, "Expected typename after '%s<'.", name);
                 return null;
             }
             name = name + getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(TYPE_PARAMETER_NAME);
             while (true) {
                 if (isSymbol('>')) {
                     name = name + '>';
-                    builder.advanceLexer();
+                    consumeTokenAs(null);
+                    typeMarker.done(FIELD_TYPE);
                     return name;
                 }
                 if (isSymbol(',')) {
                     name = name + ", ";
-                    builder.advanceLexer();
+                    consumeTokenAs(null);
                     if (!isIdentifier()) {
+                        typeMarker.drop();
                         error(marker, Construct.STATEMENT, "Expected typename after ','.");
                         return null;
                     }
                     name = name + getIdentifier();
-                    builder.advanceLexer();
+                    consumeTokenAs(TYPE_PARAMETER_NAME);
                     continue;
                 }
+                typeMarker.drop();
                 error(marker, Construct.STATEMENT, "Invalid '%s' inside <>.", getTokenText());
                 return null;
             }
@@ -232,7 +265,8 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             if (isSymbol(';')) {
-                builder.advanceLexer();
+                consumeTokenAs(null);
+                marker.done(FIELD_DEFINITION);
                 return;
             }
             if (!isIdentifier()) {
@@ -240,28 +274,28 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             String fieldName = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(FIELD_NAME);
             if (isSymbol(';')) {
-                builder.advanceLexer();
+                consumeTokenAs(null);
                 return;
             }
             if (!isSymbol('=')) {
                 error(marker, Construct.STATEMENT, "Expected ';' or '=' after '%s %s'.", typeName, fieldName);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             if (!isInteger()) {
                 error(marker, Construct.STATEMENT, "Expected field number after '%s %s = '.", typeName, fieldName);
                 return;
             }
             int fieldNumber = getInteger();
-            builder.advanceLexer();
+            consumeTokenAs(FIELD_NUMBER);
             if (!isSymbol(';')) {
                 error(marker, Construct.STATEMENT, "Expected ';' after '%s %s = %d'.",
                       typeName, fieldName, fieldNumber);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(FIELD_DEFINITION);
         }
 
@@ -269,23 +303,23 @@ public class SchemaParser implements PsiParser {
             while (isIdentifier()) {
                 PsiBuilder.Marker marker = builder.mark();
                 String name = getIdentifier();
-                builder.advanceLexer();
+                consumeTokenAs(FIELD_NAME);
                 if (!isSymbol('=')) {
                     error(marker, Construct.STATEMENT, "Expected '=' after '%s'.", name);
                     continue;
                 }
-                builder.advanceLexer();
+                consumeTokenAs(null);
                 if (!isInteger()) {
                     error(marker, Construct.STATEMENT, "Expected integer enum value after '%s = '.", name);
                     continue;
                 }
                 int value = getInteger();
-                builder.advanceLexer();
+                consumeTokenAs(FIELD_NUMBER);
                 if (!isSymbol(';')) {
                     error(marker, Construct.STATEMENT, "Expected ';' after '%s = %d'.", name, value);
                     continue;
                 }
-                builder.advanceLexer();
+                consumeTokenAs(null);
                 marker.done(ENUM_VALUE_DEFINITION);
             }
         }
@@ -320,23 +354,23 @@ public class SchemaParser implements PsiParser {
 
         private void parseComponentIdDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isSymbol('=')) {
                 error(marker, Construct.STATEMENT, "Expected '=' after '%s'.", KEYWORD_ID);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             if (!isInteger()) {
                 error(marker, Construct.STATEMENT, "Expected integer ID value after '%s = '.", KEYWORD_ID);
                 return;
             }
             int value = getInteger();
-            builder.advanceLexer();
+            consumeTokenAs(FIELD_NUMBER);
             if (!isSymbol(';')) {
                 error(marker, Construct.STATEMENT, "Expected ';' after '%s = %d'.", KEYWORD_ID, value);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(COMPONENT_ID_DEFINITION);
         }
 
@@ -366,70 +400,70 @@ public class SchemaParser implements PsiParser {
 
         private void parseEnumDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isIdentifier()) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_ENUM);
                 return;
             }
             String name = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(DEFINITION_NAME);
             if (!isSymbol('{')) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_ENUM, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             parseEnumContents();
             if (!isSymbol('}')) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_ENUM, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(ENUM_DEFINITION);
         }
 
         private void parseTypeDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isIdentifier()) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_TYPE);
                 return;
             }
             String name = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(DEFINITION_NAME);
             if (!isSymbol('{')) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_TYPE, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             parseTypeContents();
             if (!isSymbol('}')) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_TYPE, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(TYPE_DEFINITION);
         }
 
         private void parseComponentDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            builder.advanceLexer();
+            consumeTokenAs(KEYWORD);
             if (!isIdentifier()) {
                 error(marker, Construct.BRACES, "Expected identifier after '%s'.", KEYWORD_COMPONENT);
                 return;
             }
             String name = getIdentifier();
-            builder.advanceLexer();
+            consumeTokenAs(DEFINITION_NAME);
             if (!isSymbol('{')) {
                 error(marker, Construct.BRACES, "Expected '{' after '%s %s'.", KEYWORD_COMPONENT, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             parseComponentContents();
             if (!isSymbol('}')) {
                 error(marker, Construct.BRACES, "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_COMPONENT, name);
                 return;
             }
-            builder.advanceLexer();
+            consumeTokenAs(null);
             marker.done(COMPONENT_DEFINITION);
         }
 
