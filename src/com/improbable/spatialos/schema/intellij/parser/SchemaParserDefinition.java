@@ -2,6 +2,7 @@ package com.improbable.spatialos.schema.intellij.parser;
 
 import com.improbable.spatialos.schema.intellij.SchemaFileType;
 import com.improbable.spatialos.schema.intellij.SchemaLanguage;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.intellij.extapi.psi.PsiFileBase;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.ParserDefinition;
@@ -21,7 +22,7 @@ public class SchemaParserDefinition implements ParserDefinition {
     private static IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
     private static TokenSet WHITESPACE_TOKENS = TokenSet.create(TokenType.WHITE_SPACE);
     private static TokenSet COMMENT_TOKENS = TokenSet.create(SchemaLexer.COMMENT);
-    private static TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING);
+    private static TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING, TokenType.BAD_CHARACTER);
 
     @Override
     public @NotNull Lexer createLexer(Project project) {
@@ -55,7 +56,7 @@ public class SchemaParserDefinition implements ParserDefinition {
 
     @Override
     public @NotNull PsiElement createElement(ASTNode astNode) {
-        return null;
+        return new ASTWrapperPsiElement(astNode);
     }
 
     @Override
