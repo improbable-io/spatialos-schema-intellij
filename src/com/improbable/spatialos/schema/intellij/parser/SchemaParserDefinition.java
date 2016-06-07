@@ -24,7 +24,7 @@ public class SchemaParserDefinition implements ParserDefinition {
     private static TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING);
 
     @Override
-    public Lexer createLexer(Project project) {
+    public @NotNull Lexer createLexer(Project project) {
         return SchemaLexer.SCHEMA_LEXER;
     }
 
@@ -39,31 +39,30 @@ public class SchemaParserDefinition implements ParserDefinition {
     }
 
     @Override
-    public TokenSet getWhitespaceTokens() {
+    public @NotNull TokenSet getWhitespaceTokens() {
         return WHITESPACE_TOKENS;
     }
 
     @Override
-    public TokenSet getCommentTokens() {
+    public @NotNull TokenSet getCommentTokens() {
         return COMMENT_TOKENS;
     }
 
     @Override
-    public TokenSet getStringLiteralElements() {
+    public @NotNull TokenSet getStringLiteralElements() {
         return STRING_TOKENS;
     }
 
     @Override
-    public PsiElement createElement(ASTNode astNode) {
+    public @NotNull PsiElement createElement(ASTNode astNode) {
         return null;
     }
 
     @Override
     public PsiFile createFile(FileViewProvider fileViewProvider) {
         return new PsiFileBase(fileViewProvider, SchemaLanguage.SCHEMA_LANGUAGE) {
-            @NotNull
             @Override
-            public FileType getFileType() {
+            public @NotNull FileType getFileType() {
                 return SchemaFileType.SCHEMA_FILE_TYPE;
             }
         };

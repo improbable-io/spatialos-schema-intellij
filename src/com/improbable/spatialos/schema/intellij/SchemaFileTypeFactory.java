@@ -2,6 +2,7 @@ package com.improbable.spatialos.schema.intellij;
 
 import com.intellij.openapi.fileTypes.FileTypeConsumer;
 import com.intellij.openapi.fileTypes.FileTypeFactory;
+import org.jetbrains.annotations.NotNull;
 
 public class SchemaFileTypeFactory extends FileTypeFactory {
     public SchemaFileTypeFactory() {
@@ -9,7 +10,7 @@ public class SchemaFileTypeFactory extends FileTypeFactory {
     }
 
     @Override
-    public void createFileTypes(FileTypeConsumer fileTypeConsumer) {
+    public void createFileTypes(@NotNull FileTypeConsumer fileTypeConsumer) {
         fileTypeConsumer.consume(SchemaFileType.SCHEMA_FILE_TYPE,
                                  SchemaFileType.SCHEMA_FILE_TYPE.getDefaultExtension());
     }

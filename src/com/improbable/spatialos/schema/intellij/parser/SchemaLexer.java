@@ -5,6 +5,7 @@ import com.intellij.lexer.Lexer;
 import com.intellij.lexer.LexerPosition;
 import com.intellij.psi.TokenType;
 import com.intellij.psi.tree.IElementType;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,7 +67,7 @@ public class SchemaLexer extends Lexer {
     }
 
     @Override
-    public void start(CharSequence buffer, int startOffset, int endOffset, int initialState) {
+    public void start(@NotNull CharSequence buffer, int startOffset, int endOffset, int initialState) {
         this.buffer = buffer;
         this.endOffset = endOffset;
         currentTokenStart = startOffset;
@@ -100,7 +101,7 @@ public class SchemaLexer extends Lexer {
     }
 
     @Override
-    public LexerPosition getCurrentPosition() {
+    public @NotNull LexerPosition getCurrentPosition() {
         return new LexerPosition() {
             @Override
             public int getOffset() {
@@ -115,12 +116,12 @@ public class SchemaLexer extends Lexer {
     }
 
     @Override
-    public void restore(LexerPosition lexerPosition) {
+    public void restore(@NotNull LexerPosition lexerPosition) {
         currentTokenStart = lexerPosition.getOffset();
     }
 
     @Override
-    public CharSequence getBufferSequence() {
+    public @NotNull CharSequence getBufferSequence() {
         return buffer;
     }
 
