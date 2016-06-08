@@ -21,6 +21,9 @@ public class SchemaLexer extends Lexer {
     public static final IElementType RBRACE = new Token("}");
     public static final IElementType LANGLE = new Token("<");
     public static final IElementType RANGLE = new Token(">");
+    public static final IElementType EQUALS = new Token("=");
+    public static final IElementType COMMA = new Token(",");
+    public static final IElementType SEMICOLON = new Token(";");
 
     private static final String IDENTIFIER_PATTERN_STR = "[_a-zA-Z][_a-zA-Z0-9]*(\\.([_a-zA-Z][_a-zA-Z0-9]*)?)*";
     private static final Pattern IDENTIFIER_PATTERN =
@@ -30,11 +33,13 @@ public class SchemaLexer extends Lexer {
     private static final Pattern COMMENT_PATTERN = Pattern.compile("//[^\n]*|/\\*([^*]|\\*([^/]|$))*(\\*/|$)");
     private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
     private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
-    private static final Pattern SYMBOL_PATTERN = Pattern.compile(",|=|;");
     private static final Pattern LBRACE_PATTERN = Pattern.compile("\\{");
     private static final Pattern RBRACE_PATTERN = Pattern.compile("}");
     private static final Pattern LANGLE_PATTERN = Pattern.compile("<");
     private static final Pattern RANGLE_PATTERN = Pattern.compile(">");
+    private static final Pattern EQUALS_PATTERN = Pattern.compile("=");
+    private static final Pattern COMMA_PATTERN = Pattern.compile(",");
+    private static final Pattern SEMICOLON_PATTERN = Pattern.compile(";");
 
     private static class Token extends IElementType {
         public Token(String debugName) {
@@ -60,11 +65,13 @@ public class SchemaLexer extends Lexer {
             !checkCurrentToken(IDENTIFIER_PATTERN, IDENTIFIER) &&
             !checkCurrentToken(INTEGER_PATTERN, INTEGER) &&
             !checkCurrentToken(STRING_PATTERN, STRING) &&
-            !checkCurrentToken(SYMBOL_PATTERN, SYMBOL) &&
             !checkCurrentToken(LBRACE_PATTERN, LBRACE) &&
             !checkCurrentToken(RBRACE_PATTERN, RBRACE) &&
             !checkCurrentToken(LANGLE_PATTERN, LANGLE) &&
-            !checkCurrentToken(RANGLE_PATTERN, RANGLE)) {
+            !checkCurrentToken(RANGLE_PATTERN, RANGLE) &&
+            !checkCurrentToken(EQUALS_PATTERN, EQUALS) &&
+            !checkCurrentToken(COMMA_PATTERN, COMMA) &&
+            !checkCurrentToken(SEMICOLON_PATTERN, SEMICOLON)) {
             currentTokenEnd = 1 + currentTokenStart;
             currentToken = TokenType.BAD_CHARACTER;
         }

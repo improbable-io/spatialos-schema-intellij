@@ -19,7 +19,6 @@ import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 
 public class SchemaParserDefinition implements ParserDefinition {
-
     private static final TokenSet WHITESPACE_TOKENS = TokenSet.create(TokenType.WHITE_SPACE);
     private static final TokenSet COMMENT_TOKENS = TokenSet.create(SchemaLexer.COMMENT);
     private static final TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING, TokenType.BAD_CHARACTER);

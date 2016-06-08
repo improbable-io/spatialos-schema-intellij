@@ -5,7 +5,6 @@ import com.improbable.spatialos.schema.intellij.parser.SchemaParser;
 import com.intellij.formatting.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.tree.IElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,6 +65,7 @@ public class SchemaBlock implements Block {
 
     @Override
     public @Nullable Spacing getSpacing(@Nullable Block child1, @NotNull Block child2) {
+        // I don't understand how to get this to do anything.
         return null;
     }
 
@@ -76,29 +76,35 @@ public class SchemaBlock implements Block {
 
     @Override
     public boolean isIncomplete() {
-        return node.getElementType() == SchemaParser.INCOMPLETE;
+        IElementType element = node.getElementType();
+        IElementType lastElement =
+            subBlocks.isEmpty() ? null : subBlocks.get(subBlocks.size() - 1).node.getElementType();
+        return
+            (INDENT_BLOCKS.contains(element) && lastElement != SchemaLexer.RBRACE) ||
+            (CONTINUATION_BLOCKS.contains(element) && lastElement != SchemaLexer.SEMICOLON);
     }
 
     @Override
     public boolean isLeaf() {
-        return node.getFirstChildNode() == null;
+        return false;
     }
 
     private Indent getIndentForChild(int newChildIndex, @Nullable IElementType newElement) {
-        if (CONTINUATION_BLOCKS.contains(node.getElementType())) {
-            return newChildIndex == 0 ? Indent.getNoneIndent() : Indent.getContinuationIndent();
-        }
-        if (INDENT_BLOCKS.contains(node.getElementType())) {
+        IElementType element = node.getElementType();
+        if (INDENT_BLOCKS.contains(element)) {
             boolean afterLeftBrace = false;
             boolean afterRightBrace = false;
             for (int i = 0; i < newChildIndex && i < subBlocks.size(); ++i) {
-                IElementType element = subBlocks.get(i).node.getElementType();
-                afterLeftBrace |= element == SchemaLexer.LBRACE;
-                afterRightBrace |= element == SchemaLexer.RBRACE;
+                IElementType childElement = subBlocks.get(i).node.getElementType();
+                afterLeftBrace |= childElement == SchemaLexer.LBRACE;
+                afterRightBrace |= childElement == SchemaLexer.RBRACE;
             }
             boolean shouldIndent = afterLeftBrace && !afterRightBrace && newElement != SchemaLexer.RBRACE;
             return shouldIndent ? Indent.getNormalIndent() : Indent.getNoneIndent();
         }
-        return Indent.getNoneIndent();
+        // Doesn't indent with continuation on pressing enter after the first element in an incomplete line. I can't
+        // figure out why.
+        return CONTINUATION_BLOCKS.contains(element) ?
+            Indent.getContinuationWithoutFirstIndent() : Indent.getNoneIndent();
     }
 }
