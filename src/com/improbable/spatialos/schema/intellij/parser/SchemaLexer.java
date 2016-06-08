@@ -11,27 +11,30 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SchemaLexer extends Lexer {
-    public static SchemaLexer SCHEMA_LEXER = new SchemaLexer();
-    public static IElementType COMMENT = new Token("comment");
-    public static IElementType IDENTIFIER = new Token("identifier");
-    public static IElementType INTEGER = new Token("integer");
-    public static IElementType STRING = new Token("string");
-    public static IElementType SYMBOL = new Token("symbol");
-    public static IElementType LBRACE = new Token("{");
-    public static IElementType RBRACE = new Token("}");
-    public static IElementType LANGLE = new Token("<");
-    public static IElementType RANGLE = new Token(">");
+    public static final SchemaLexer SCHEMA_LEXER = new SchemaLexer();
+    public static final IElementType COMMENT = new Token("Comment");
+    public static final IElementType IDENTIFIER = new Token("Identifier");
+    public static final IElementType INTEGER = new Token("Integer");
+    public static final IElementType STRING = new Token("String");
+    public static final IElementType SYMBOL = new Token("Symbol");
+    public static final IElementType LBRACE = new Token("{");
+    public static final IElementType RBRACE = new Token("}");
+    public static final IElementType LANGLE = new Token("<");
+    public static final IElementType RANGLE = new Token(">");
 
-    private static Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
-    private static Pattern COMMENT_PATTERN = Pattern.compile("//[^\n]*|/\\*([^*]|\\*[^/])*(\\*/|$)");
-    private static Pattern IDENTIFIER_PATTERN = Pattern.compile("\\.|\\.?[_a-zA-Z][_a-zA-Z0-9]*(\\.([_a-zA-Z][_a-zA-Z0-9]*)?)*");
-    private static Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
-    private static Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
-    private static Pattern SYMBOL_PATTERN = Pattern.compile(",|=|;");
-    private static Pattern LBRACE_PATTERN = Pattern.compile("\\{");
-    private static Pattern RBRACE_PATTERN = Pattern.compile("}");
-    private static Pattern LANGLE_PATTERN = Pattern.compile("<");
-    private static Pattern RANGLE_PATTERN = Pattern.compile(">");
+    private static final String IDENTIFIER_PATTERN_STR = "[_a-zA-Z][_a-zA-Z0-9]*(\\.([_a-zA-Z][_a-zA-Z0-9]*)?)*";
+    private static final Pattern IDENTIFIER_PATTERN =
+        Pattern.compile("\\.(" + IDENTIFIER_PATTERN_STR + ")?|" + IDENTIFIER_PATTERN_STR);
+
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static final Pattern COMMENT_PATTERN = Pattern.compile("//[^\n]*|/\\*([^*]|\\*([^/]|$))*(\\*/|$)");
+    private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile(",|=|;");
+    private static final Pattern LBRACE_PATTERN = Pattern.compile("\\{");
+    private static final Pattern RBRACE_PATTERN = Pattern.compile("}");
+    private static final Pattern LANGLE_PATTERN = Pattern.compile("<");
+    private static final Pattern RANGLE_PATTERN = Pattern.compile(">");
 
     private static class Token extends IElementType {
         public Token(String debugName) {

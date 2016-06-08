@@ -11,9 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SchemaAnnotator implements Annotator {
-    private static List<String> OPTION_VALUES = Arrays.asList("true", "false");
-    private static List<String> BUILT_IN_GENERIC_TYPES = Arrays.asList("option", "list", "map");
-    private static List<String> BUILT_IN_TYPES = Arrays.asList(
+    private static final List<String> OPTION_VALUES = Arrays.asList("true", "false");
+    private static final List<String> BUILT_IN_GENERIC_TYPES = Arrays.asList("option", "list", "map");
+    private static final List<String> BUILT_IN_TYPES = Arrays.asList(
         "double", "float", "string", "bytes", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
         "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "EntityId", "EntityPosition", "Coordinates",
         "Vector3d", "Vector3f");

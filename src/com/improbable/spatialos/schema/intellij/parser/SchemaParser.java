@@ -5,49 +5,52 @@ import com.intellij.lang.ASTNode;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiParser;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.IFileElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SchemaParser implements PsiParser {
-    public static SchemaParser SCHEMA_PARSER = new SchemaParser();
+    public static final SchemaParser SCHEMA_PARSER = new SchemaParser();
 
-    public static String KEYWORD_PACKAGE = "package";
-    public static String KEYWORD_IMPORT = "import";
-    public static String KEYWORD_ENUM = "enum";
-    public static String KEYWORD_TYPE = "type";
-    public static String KEYWORD_COMPONENT = "component";
-    public static String KEYWORD_OPTION = "option";
-    public static String KEYWORD_ID = "id";
+    public static final String KEYWORD_PACKAGE = "package";
+    public static final String KEYWORD_IMPORT = "import";
+    public static final String KEYWORD_ENUM = "enum";
+    public static final String KEYWORD_TYPE = "type";
+    public static final String KEYWORD_COMPONENT = "component";
+    public static final String KEYWORD_OPTION = "option";
+    public static final String KEYWORD_ID = "id";
 
-    public static IElementType INCOMPLETE = new Node("incomplete");
-    public static IElementType KEYWORD = new Node("keyword");
-    public static IElementType DEFINITION_NAME = new Node("definition name");
+    public static final IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
 
-    public static IElementType PACKAGE_DEFINITION = new Node("package definition");
-    public static IElementType PACKAGE_NAME = new Node("package name");
+    public static final IElementType INCOMPLETE = new Node("Incomplete");
+    public static final IElementType KEYWORD = new Node("Keyword");
+    public static final IElementType DEFINITION_NAME = new Node("Definition Name");
 
-    public static IElementType IMPORT_DEFINITION = new Node("import definition");
-    public static IElementType IMPORT_FILENAME = new Node("import filename");
+    public static final IElementType PACKAGE_DEFINITION = new Node("Package Definition");
+    public static final IElementType PACKAGE_NAME = new Node("Package Name");
 
-    public static IElementType OPTION_DEFINITION = new Node("option definition");
-    public static IElementType OPTION_NAME = new Node("option name");
-    public static IElementType OPTION_VALUE = new Node("option value");
+    public static final IElementType IMPORT_DEFINITION = new Node("Import Definition");
+    public static final IElementType IMPORT_FILENAME = new Node("Import Filename");
 
-    public static IElementType TYPE_NAME = new Node("type name");
-    public static IElementType TYPE_PARAMETER_NAME = new Node("type parameter name");
+    public static final IElementType OPTION_DEFINITION = new Node("Option Definition");
+    public static final IElementType OPTION_NAME = new Node("Option Name");
+    public static final IElementType OPTION_VALUE = new Node("Option Value");
 
-    public static IElementType FIELD_TYPE = new Node("field type");
-    public static IElementType FIELD_NAME = new Node("field name");
-    public static IElementType FIELD_NUMBER = new Node("field number");
+    public static final IElementType TYPE_NAME = new Node("Type Name");
+    public static final IElementType TYPE_PARAMETER_NAME = new Node("Type Parameter Name");
 
-    public static IElementType ENUM_DEFINITION = new Node("enum definition");
-    public static IElementType ENUM_VALUE_DEFINITION = new Node("enum value definition");
+    public static final IElementType FIELD_TYPE = new Node("Field Type");
+    public static final IElementType FIELD_NAME = new Node("Field Name");
+    public static final IElementType FIELD_NUMBER = new Node("Field Number");
 
-    public static IElementType TYPE_DEFINITION = new Node("type definition");
-    public static IElementType FIELD_DEFINITION = new Node("field definition");
+    public static final IElementType ENUM_DEFINITION = new Node("Enum Definition");
+    public static final IElementType ENUM_VALUE_DEFINITION = new Node("Enum Value Definition");
 
-    public static IElementType COMPONENT_DEFINITION = new Node("component definition");
-    public static IElementType COMPONENT_ID_DEFINITION = new Node("component id definition");
+    public static final IElementType TYPE_DEFINITION = new Node("Type Definition");
+    public static final IElementType FIELD_DEFINITION = new Node("Field Definition");
+
+    public static final IElementType COMPONENT_DEFINITION = new Node("Component Definition");
+    public static final IElementType COMPONENT_ID_DEFINITION = new Node("Component ID Definition");
 
     private static class Node extends IElementType {
         public Node(String debugName) {

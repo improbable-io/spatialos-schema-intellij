@@ -19,10 +19,10 @@ import com.intellij.psi.tree.TokenSet;
 import org.jetbrains.annotations.NotNull;
 
 public class SchemaParserDefinition implements ParserDefinition {
-    private static IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
-    private static TokenSet WHITESPACE_TOKENS = TokenSet.create(TokenType.WHITE_SPACE);
-    private static TokenSet COMMENT_TOKENS = TokenSet.create(SchemaLexer.COMMENT);
-    private static TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING, TokenType.BAD_CHARACTER);
+
+    private static final TokenSet WHITESPACE_TOKENS = TokenSet.create(TokenType.WHITE_SPACE);
+    private static final TokenSet COMMENT_TOKENS = TokenSet.create(SchemaLexer.COMMENT);
+    private static final TokenSet STRING_TOKENS = TokenSet.create(SchemaLexer.STRING, TokenType.BAD_CHARACTER);
 
     @Override
     public @NotNull Lexer createLexer(Project project) {
@@ -36,7 +36,7 @@ public class SchemaParserDefinition implements ParserDefinition {
 
     @Override
     public IFileElementType getFileNodeType() {
-        return SCHEMA_FILE;
+        return SchemaParser.SCHEMA_FILE;
     }
 
     @Override

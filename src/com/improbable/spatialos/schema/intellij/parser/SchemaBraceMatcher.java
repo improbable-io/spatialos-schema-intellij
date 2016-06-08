@@ -8,8 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SchemaBraceMatcher implements PairedBraceMatcher {
-    private static BracePair[] BRACE_PAIRS = {new BracePair(SchemaLexer.LBRACE, SchemaLexer.RBRACE, true),
-                                              new BracePair(SchemaLexer.LANGLE, SchemaLexer.RANGLE, false)};
+    private static final BracePair[] BRACE_PAIRS = {new BracePair(SchemaLexer.LBRACE, SchemaLexer.RBRACE, true),
+                                                    new BracePair(SchemaLexer.LANGLE, SchemaLexer.RANGLE, false)};
 
     @Override
     public BracePair[] getPairs() {
