@@ -24,6 +24,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <annotator language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaAnnotator"/>
     <fileTypeFactory implementation="com.improbable.spatialos.schema.intellij.SchemaFileTypeFactory"/>
+    <fileTypeIndentOptionsProvider implementation="com.improbable.spatialos.schema.intellij.settings.SchemaFileTypeIndentOptionsProvider"/>
     <lang.braceMatcher language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaBraceMatcher"/>
     <lang.commenter language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.actions.SchemaCommenter"/>
     <lang.formatter language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.actions.SchemaFormattingModelBuilder"/>
