@@ -5,6 +5,7 @@ import com.improbable.spatialos.schema.intellij.parser.SchemaParser;
 import com.intellij.formatting.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiComment;
 import com.intellij.psi.tree.IElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +22,14 @@ public class SchemaBlock implements Block {
         SchemaParser.PACKAGE_DEFINITION, SchemaParser.IMPORT_DEFINITION, SchemaParser.OPTION_DEFINITION,
         SchemaParser.FIELD_DEFINITION, SchemaParser.FIELD_TYPE,
         SchemaParser.ENUM_VALUE_DEFINITION, SchemaParser.COMPONENT_ID_DEFINITION);
+
+    private static final Spacing NO_SPACING = Spacing.createSpacing(0, 0, 0, false, 0);
+    private static final Spacing ONE_SPACE = Spacing.createSpacing(1, 1, 0, false, 0);
+    private static final Spacing SPACE_OR_BREAK = Spacing.createSpacing(0, 1, 0, true, 0);
+    private static final Spacing NO_SPACE_OR_BREAK = Spacing.createSpacing(0, 0, 0, true, 0);
+    private static final Spacing ONE_BREAK = Spacing.createSpacing(0, 0, 1, false, 0);
+    private static final Spacing FREE_BREAKS = Spacing.createSpacing(0, 0, 1, true, 1);
+    private static final Spacing FREE_BREAKS_AND_SPACES = Spacing.createSpacing(1, Integer.MAX_VALUE, 0, true, 1);
 
     private final ASTNode node;
     private final Indent indent;
@@ -65,8 +74,56 @@ public class SchemaBlock implements Block {
 
     @Override
     public @Nullable Spacing getSpacing(@Nullable Block child1, @NotNull Block child2) {
-        // I don't understand how to get this to do anything.
-        return null;
+        if (child1 == null || !(child1 instanceof SchemaBlock) || !(child2 instanceof SchemaBlock)) {
+            return null;
+        }
+        SchemaBlock left = (SchemaBlock) child1;
+        SchemaBlock right = (SchemaBlock) child2;
+
+        // Comments.
+        if (left.node.getPsi() instanceof PsiComment || right.node.getPsi() instanceof PsiComment) {
+            return FREE_BREAKS_AND_SPACES;
+        }
+
+        // Braces.
+        if (left.node.getPsi().getText().equals("{") || right.node.getPsi().getText().equals("}")) {
+            return ONE_BREAK;
+        }
+        if (left.node.getPsi().getText().equals("}")) {
+            return FREE_BREAKS;
+        }
+        if (right.node.getPsi().getText().equals("{")) {
+            return ONE_SPACE;
+        }
+
+        // Angle brackets.
+        if (left.node.getPsi().getText().equals("<") || right.node.getPsi().getText().equals(">")) {
+            return NO_SPACE_OR_BREAK;
+        }
+        if (left.node.getPsi().getText().equals(">")) {
+            return SPACE_OR_BREAK;
+        }
+        if (right.node.getPsi().getText().equals("<")) {
+            return NO_SPACING;
+        }
+
+        // Comma and semicolon.
+        if (right.node.getPsi().getText().equals(",") || right.node.getPsi().getText().equals(";")) {
+            return NO_SPACING;
+        }
+        if (left.node.getPsi().getText().equals(",")) {
+            return SPACE_OR_BREAK;
+        }
+        if (left.node.getPsi().getText().equals(";")) {
+            return FREE_BREAKS;
+        }
+
+        // Equals.
+        if (left.node.getPsi().getText().equals("=") || right.node.getPsi().getText().equals("=")) {
+            return SPACE_OR_BREAK;
+        }
+
+        return SPACE_OR_BREAK;
     }
 
     @Override
