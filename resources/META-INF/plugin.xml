@@ -30,10 +30,11 @@
     <lang.formatter language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.actions.SchemaFormattingModelBuilder"/>
     <lang.parserDefinition language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaParserDefinition"/>
     <lang.syntaxHighlighterFactory language="SpatialOS Schema" implementationClass="com.improbable.spatialos.schema.intellij.parser.SchemaSyntaxHighlighterFactory"/>
+    <projectConfigurable displayName="SpatialOS Schema" id="preferences.SchemaProjectConfigurable" groupId="project" instance="com.improbable.spatialos.schema.intellij.settings.SchemaProjectConfigurable"/>
+    <projectService serviceInterface="com.improbable.spatialos.schema.intellij.settings.SchemaProjectProperties" serviceImplementation="com.improbable.spatialos.schema.intellij.settings.SchemaProjectProperties"/>
   </extensions>
 
   <actions>
     <!-- Add your actions here -->
   </actions>
-
 </idea-plugin>
