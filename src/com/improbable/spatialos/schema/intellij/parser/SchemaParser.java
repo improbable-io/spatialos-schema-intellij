@@ -228,7 +228,7 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(null);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 typeMarker.drop();
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Expected typename after '%s<'.", name);
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Expected typename after '%s'.", name);
                 return null;
             }
             name = name + getIdentifier();
@@ -278,6 +278,7 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(FIELD_NAME);
             if (isToken(SchemaLexer.SEMICOLON)) {
                 consumeTokenAs(null);
+                marker.done(FIELD_DEFINITION);
                 return;
             }
             if (!isToken(SchemaLexer.EQUALS)) {
