@@ -20,8 +20,8 @@ public class SchemaBlock implements Block {
         SchemaParser.ENUM_DEFINITION, SchemaParser.TYPE_DEFINITION, SchemaParser.COMPONENT_DEFINITION);
     private static final List<IElementType> CONTINUATION_BLOCKS = Arrays.asList(
         SchemaParser.PACKAGE_DEFINITION, SchemaParser.IMPORT_DEFINITION, SchemaParser.OPTION_DEFINITION,
-        SchemaParser.FIELD_DEFINITION, SchemaParser.FIELD_TYPE,
-        SchemaParser.ENUM_VALUE_DEFINITION, SchemaParser.COMPONENT_ID_DEFINITION);
+        SchemaParser.FIELD_DEFINITION, SchemaParser.DATA_DEFINITION, SchemaParser.EVENT_DEFINITION,
+        SchemaParser.FIELD_TYPE, SchemaParser.ENUM_VALUE_DEFINITION, SchemaParser.COMPONENT_ID_DEFINITION);
 
     private static final Spacing NO_SPACING = Spacing.createSpacing(0, 0, 0, false, 0);
     private static final Spacing ONE_SPACE = Spacing.createSpacing(1, 1, 0, false, 0);

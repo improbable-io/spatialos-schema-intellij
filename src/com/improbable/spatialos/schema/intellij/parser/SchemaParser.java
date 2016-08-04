@@ -19,6 +19,8 @@ public class SchemaParser implements PsiParser {
     public static final String KEYWORD_COMPONENT = "component";
     public static final String KEYWORD_OPTION = "option";
     public static final String KEYWORD_ID = "id";
+    public static final String KEYWORD_DATA = "data";
+    public static final String KEYWORD_EVENT = "event";
 
     public static final IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
 
@@ -45,9 +47,11 @@ public class SchemaParser implements PsiParser {
     public static final IElementType ENUM_DEFINITION = new Node("Enum Definition");
     public static final IElementType ENUM_VALUE_DEFINITION = new Node("Enum Value Definition");
 
-    public static final IElementType TYPE_DEFINITION = new Node("Type Definition");
+    public static final IElementType DATA_DEFINITION = new Node("Data Definition");
     public static final IElementType FIELD_DEFINITION = new Node("Field Definition");
+    public static final IElementType EVENT_DEFINITION = new Node("Event Definition");
 
+    public static final IElementType TYPE_DEFINITION = new Node("Type Definition");
     public static final IElementType COMPONENT_DEFINITION = new Node("Component Definition");
     public static final IElementType COMPONENT_ID_DEFINITION = new Node("Component ID Definition");
 
@@ -264,26 +268,15 @@ public class SchemaParser implements PsiParser {
             if (typeName == null) {
                 return;
             }
-            if (isToken(SchemaLexer.SEMICOLON)) {
-                consumeTokenAs(null);
-                marker.done(FIELD_DEFINITION);
-                return;
-            }
             if (!isToken(SchemaLexer.IDENTIFIER)) {
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' or field name after '%s'.", typeName);
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Expected field name after '%s'.", typeName);
                 return;
             }
             String fieldName = getIdentifier();
             consumeTokenAs(FIELD_NAME);
-            if (isToken(SchemaLexer.SEMICOLON)) {
-                consumeTokenAs(null);
-                marker.done(FIELD_DEFINITION);
-                return;
-            }
             if (!isToken(SchemaLexer.EQUALS)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' or '=' after '%s %s'.", typeName, fieldName);
+                      "Expected '=' after '%s %s'.", typeName, fieldName);
                 return;
             }
             consumeTokenAs(null);
@@ -383,6 +376,53 @@ public class SchemaParser implements PsiParser {
             marker.done(COMPONENT_ID_DEFINITION);
         }
 
+        private void parseDataDefinition() {
+            PsiBuilder.Marker marker = builder.mark();
+            consumeTokenAs(KEYWORD);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, DATA_DEFINITION, Construct.STATEMENT, "Expected typename after '%s'.", KEYWORD_DATA);
+                return;
+            }
+            String typeName = parseTypeName(marker);
+            if (typeName == null) {
+                return;
+            }
+            if (!isToken(SchemaLexer.SEMICOLON)) {
+                error(marker, DATA_DEFINITION, Construct.STATEMENT,
+                        "Expected ';' after '%s %s'.", KEYWORD_DATA, typeName);
+                return;
+            }
+            consumeTokenAs(null);
+            marker.done(DATA_DEFINITION);
+        }
+
+        private void parseEventDefinition() {
+            PsiBuilder.Marker marker = builder.mark();
+            consumeTokenAs(KEYWORD);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, EVENT_DEFINITION, Construct.STATEMENT, "Expected typename after '%s'.", KEYWORD_EVENT);
+                return;
+            }
+            String typeName = parseTypeName(marker);
+            if (typeName == null) {
+                return;
+            }
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, EVENT_DEFINITION, Construct.STATEMENT,
+                      "Expected field name after '%s %s'.", KEYWORD_EVENT, typeName);
+                return;
+            }
+            String fieldName = getIdentifier();
+            consumeTokenAs(FIELD_NAME);
+            if (!isToken(SchemaLexer.SEMICOLON)) {
+                error(marker, EVENT_DEFINITION, Construct.STATEMENT,
+                        "Expected ';' after '%s %s %s'.", KEYWORD_EVENT, typeName, fieldName);
+                return;
+            }
+            consumeTokenAs(null);
+            marker.done(EVENT_DEFINITION);
+        }
+
         private void parseComponentContents() {
             while (true) {
                 if (isIdentifier(KEYWORD_OPTION)) {
@@ -397,6 +437,14 @@ public class SchemaParser implements PsiParser {
                 }
                 if (isIdentifier(KEYWORD_ID)) {
                     parseComponentIdDefinition();
+                    continue;
+                }
+                if (isIdentifier(KEYWORD_DATA)) {
+                    parseDataDefinition();
+                    continue;
+                }
+                if (isIdentifier(KEYWORD_EVENT)) {
+                    parseEventDefinition();
                     continue;
                 }
                 if (isToken(SchemaLexer.IDENTIFIER)) {
