@@ -47,12 +47,12 @@ public class SchemaLexer extends Lexer {
         }
     }
 
-    private CharSequence buffer;
-    private int endOffset;
+    private CharSequence buffer = null;
+    private int endOffset = 0;
 
-    private IElementType currentToken;
-    private int currentTokenStart;
-    private int currentTokenEnd;
+    private IElementType currentToken = null;
+    private int currentTokenStart = 0;
+    private int currentTokenEnd = 0;
 
     private void computeCurrentToken() {
         if (currentTokenStart >= endOffset) {
