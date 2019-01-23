@@ -39,6 +39,9 @@ public class SchemaAnnotator implements Annotator {
                 highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
             }
         }
+        if(element.getNode().getElementType() == SchemaParser.ANNOTATION) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
+        }
         if(element.getNode().getElementType() == SchemaParser.COMMAND_NAME) {
             highlight(holder, element, DefaultLanguageHighlighterColors.INSTANCE_METHOD);
         }

@@ -9,7 +9,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class SchemaBraceMatcher implements PairedBraceMatcher {
     private static final BracePair[] BRACE_PAIRS = {new BracePair(SchemaLexer.LBRACE, SchemaLexer.RBRACE, true),
-                                                    new BracePair(SchemaLexer.LANGLE, SchemaLexer.RANGLE, false)};
+                                                    new BracePair(SchemaLexer.LANGLE, SchemaLexer.RANGLE, false),
+                                                    new BracePair(SchemaLexer.LPARENTHESES, SchemaLexer.RPARENTHESES, false),
+                                                    new BracePair(SchemaLexer.LBRACKET, SchemaLexer.RBRACKET, false),};
 
     @Override
     public BracePair[] getPairs() {

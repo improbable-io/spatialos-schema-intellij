@@ -22,6 +22,7 @@ public class SchemaParser implements PsiParser {
     public static final String KEYWORD_DATA = "data";
     public static final String KEYWORD_EVENT = "event";
     public static final String KEYWORD_COMMAND = "command";
+    public static final String KEYWORD_ANNOTATION_START = "[";
 
     public static final IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
 
@@ -58,7 +59,7 @@ public class SchemaParser implements PsiParser {
 
     public static final IElementType COMMAND_DEFINITION = new Node("Command Definition");
     public static final IElementType COMMAND_NAME = new Node("Command Name");
-    public static final IElementType BRACE = new Node("Brace");
+    public static final IElementType ANNOTATION = new Node("Annotation Definition");
 
     private static class Node extends IElementType {
         public Node(String debugName) {
@@ -456,12 +457,28 @@ public class SchemaParser implements PsiParser {
                     parseCommandDefinition();
                     continue;
                 }
+                if(isIdentifier(KEYWORD_ANNOTATION_START)) {
+                    parseAnnotationDefinition();
+                    continue;
+                }
                 if (isToken(SchemaLexer.IDENTIFIER)) {
                     parseFieldDefinition();
                     continue;
                 }
                 return;
             }
+        }
+
+        private void parseAnnotationDefinition() {
+            PsiBuilder.Marker marker = builder.mark();
+            consumeTokenAs(KEYWORD);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, ANNOTATION, Construct.STATEMENT, "Expected type after '['.");
+                return;
+            }
+            consumeTokenAs(TYPE_NAME);
+
+            marker.done(ANNOTATION);
         }
 
         private void parseCommandDefinition() {
@@ -480,7 +497,7 @@ public class SchemaParser implements PsiParser {
             }
             String name = getIdentifier();
             consumeTokenAs(FIELD_NAME);
-            if (!isToken(SchemaLexer.LBRACKET)) {
+            if (!isToken(SchemaLexer.LPARENTHESES)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
                         "Expected '(' after 'command %s %s'.", response, name);
                 return;
@@ -493,7 +510,7 @@ public class SchemaParser implements PsiParser {
             }
             String request = getIdentifier();
             consumeTokenAs(TYPE_NAME);
-            if (!isToken(SchemaLexer.RBRACKET)) {
+            if (!isToken(SchemaLexer.RPARENTHESES)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
                         "Expected ')' after 'command %s %s(%s'.", response, name, request);
                 return;
