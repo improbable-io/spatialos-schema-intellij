@@ -21,6 +21,7 @@ public class SchemaParser implements PsiParser {
     public static final String KEYWORD_ID = "id";
     public static final String KEYWORD_DATA = "data";
     public static final String KEYWORD_EVENT = "event";
+    public static final String KEYWORD_COMMAND = "command";
 
     public static final IFileElementType SCHEMA_FILE = new IFileElementType(SchemaLanguage.SCHEMA_LANGUAGE);
 
@@ -54,6 +55,10 @@ public class SchemaParser implements PsiParser {
     public static final IElementType TYPE_DEFINITION = new Node("Type Definition");
     public static final IElementType COMPONENT_DEFINITION = new Node("Component Definition");
     public static final IElementType COMPONENT_ID_DEFINITION = new Node("Component ID Definition");
+
+    public static final IElementType COMMAND_DEFINITION = new Node("Command Definition");
+    public static final IElementType COMMAND_RESPONSE = new Node("Command Response");
+    public static final IElementType COMMAND_REQUEST = new Node("Command Request");
 
     private static class Node extends IElementType {
         public Node(String debugName) {
@@ -447,12 +452,60 @@ public class SchemaParser implements PsiParser {
                     parseEventDefinition();
                     continue;
                 }
+                if(isIdentifier(KEYWORD_COMMAND)) {
+                    parseCommandDefinition();
+                    continue;
+                }
                 if (isToken(SchemaLexer.IDENTIFIER)) {
                     parseFieldDefinition();
                     continue;
                 }
                 return;
             }
+        }
+
+        private void parseCommandDefinition() {
+            PsiBuilder.Marker marker = builder.mark();
+            consumeTokenAs(COMMAND_DEFINITION);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT, "Expected command response after 'command'.");
+                return;
+            }
+            String response = getIdentifier();
+            consumeTokenAs(COMMAND_RESPONSE);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
+                        "Expected command name after 'command %s'.", response);
+                return;
+            }
+            String name = getIdentifier();
+            consumeTokenAs(FIELD_NAME);
+            if (!isToken(SchemaLexer.LBRACKET)) {
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                        "Expected '(' after 'command %s %s'.", response, name);
+                return;
+            }
+            consumeTokenAs(null);
+            if (!isToken(SchemaLexer.IDENTIFIER)) {
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                        "Expected command request after 'command %s %s('.", response, name);
+                return;
+            }
+            String request = getIdentifier();
+            consumeTokenAs(COMMAND_REQUEST);
+            if (!isToken(SchemaLexer.RBRACKET)) {
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                        "Expected ')' after 'command %s %s(%s'.", response, name, request);
+                return;
+            }
+            consumeTokenAs(null);
+            if (!isToken(SchemaLexer.SEMICOLON)) {
+                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                        "Expected ';' after 'command %s %s(%s)'.", response, name, request);
+                return;
+            }
+            consumeTokenAs(null);
+            marker.done(COMMAND_DEFINITION);
         }
 
         private void parseEnumDefinition() {

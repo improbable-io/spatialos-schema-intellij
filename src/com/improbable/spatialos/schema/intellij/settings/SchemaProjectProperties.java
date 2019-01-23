@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @State(name=SchemaLanguage.LANGUAGE_ID, storages={
-        @Storage(id="dir", file=StoragePathMacros.PROJECT_CONFIG_DIR + "/spatial.xml",
+        @Storage(value="dir", file=StoragePathMacros.WORKSPACE_FILE + "/spatial.xml",
                  scheme=StorageScheme.DIRECTORY_BASED)
 })
 public class SchemaProjectProperties implements PersistentStateComponent<SchemaProjectProperties.State> {

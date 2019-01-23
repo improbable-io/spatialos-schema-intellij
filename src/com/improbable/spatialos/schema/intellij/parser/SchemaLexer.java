@@ -19,6 +19,8 @@ public class SchemaLexer extends Lexer {
     public static final IElementType SYMBOL = new Token("Symbol");
     public static final IElementType LBRACE = new Token("{");
     public static final IElementType RBRACE = new Token("}");
+    public static final IElementType LBRACKET = new Token("(");
+    public static final IElementType RBRACKET = new Token(")");
     public static final IElementType LANGLE = new Token("<");
     public static final IElementType RANGLE = new Token(">");
     public static final IElementType EQUALS = new Token("=");
@@ -35,6 +37,8 @@ public class SchemaLexer extends Lexer {
     private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
     private static final Pattern LBRACE_PATTERN = Pattern.compile("\\{");
     private static final Pattern RBRACE_PATTERN = Pattern.compile("}");
+    private static final Pattern LBRACKET_PATTERN = Pattern.compile("\\(");
+    private static final Pattern RBRACKET_PATTERN = Pattern.compile("\\)");
     private static final Pattern LANGLE_PATTERN = Pattern.compile("<");
     private static final Pattern RANGLE_PATTERN = Pattern.compile(">");
     private static final Pattern EQUALS_PATTERN = Pattern.compile("=");
@@ -67,6 +71,8 @@ public class SchemaLexer extends Lexer {
             !checkCurrentToken(STRING_PATTERN, STRING) &&
             !checkCurrentToken(LBRACE_PATTERN, LBRACE) &&
             !checkCurrentToken(RBRACE_PATTERN, RBRACE) &&
+            !checkCurrentToken(LBRACKET_PATTERN, LBRACKET) &&
+            !checkCurrentToken(RBRACKET_PATTERN, RBRACKET) &&
             !checkCurrentToken(LANGLE_PATTERN, LANGLE) &&
             !checkCurrentToken(RANGLE_PATTERN, RANGLE) &&
             !checkCurrentToken(EQUALS_PATTERN, EQUALS) &&
