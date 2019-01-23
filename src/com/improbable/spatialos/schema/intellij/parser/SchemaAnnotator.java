@@ -15,10 +15,7 @@ public class SchemaAnnotator implements Annotator {
     private static final List<String> BUILT_IN_GENERIC_TYPES = Arrays.asList("option", "list", "map");
     private static final List<String> BUILT_IN_TYPES = Arrays.asList(
             "double", "float", "string", "bytes", "int32", "int64", "uint32", "uint64", "sint32", "sint64", "fixed32",
-            "fixed64", "sfixed32", "sfixed64", "bool", "command", "event",
-            //TODO: I'd like to make this detect things from imported schemas and the current schema rather than this list of strings and also make it error if its not imported
-            "improbable.EntityId", "improbable.Position",
-            "improbable.Coordinates", "improbable.Vector3d", "improbable.Vector3f"
+            "fixed64", "sfixed32", "sfixed64", "bool"
     );
 
     @Override
@@ -32,12 +29,31 @@ public class SchemaAnnotator implements Annotator {
         }
         if (element.getNode().getElementType() == SchemaParser.TYPE_NAME &&
             BUILT_IN_GENERIC_TYPES.contains(element.getText())) {
-            highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
+            highlight(holder, element, DefaultLanguageHighlighterColors.KEYWORD);
         }
-        if ((element.getNode().getElementType() == SchemaParser.TYPE_PARAMETER_NAME ||
-             element.getNode().getElementType() == SchemaParser.TYPE_NAME) &&
-            BUILT_IN_TYPES.contains(element.getText())) {
-            highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
+        if (element.getNode().getElementType() == SchemaParser.TYPE_PARAMETER_NAME ||
+             element.getNode().getElementType() == SchemaParser.TYPE_NAME) {
+            if (BUILT_IN_TYPES.contains(element.getText())) {
+                highlight(holder, element, DefaultLanguageHighlighterColors.KEYWORD);
+            } else {
+                highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
+            }
+        }
+        if(element.getNode().getElementType() == SchemaParser.COMMAND_NAME) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.INSTANCE_METHOD);
+        }
+        if(element.getNode().getText().equals("{") || element.getNode().getText().equals("}") ||
+           element.getNode().getText().equals("[") || element.getNode().getText().equals("]")) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.BRACKETS);
+        }
+        if(element.getNode().getText().equals("(") || element.getNode().getText().equals(")")) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.PARENTHESES);
+        }
+        if(element.getNode().getText().equals(",")) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.COMMA);
+        }
+        if(element.getNode().getText().equals(";")) {
+            highlight(holder, element, DefaultLanguageHighlighterColors.SEMICOLON);
         }
     }
 

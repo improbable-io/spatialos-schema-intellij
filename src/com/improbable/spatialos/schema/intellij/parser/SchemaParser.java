@@ -57,8 +57,8 @@ public class SchemaParser implements PsiParser {
     public static final IElementType COMPONENT_ID_DEFINITION = new Node("Component ID Definition");
 
     public static final IElementType COMMAND_DEFINITION = new Node("Command Definition");
-    public static final IElementType COMMAND_RESPONSE = new Node("Command Response");
-    public static final IElementType COMMAND_REQUEST = new Node("Command Request");
+    public static final IElementType COMMAND_NAME = new Node("Command Name");
+    public static final IElementType BRACE = new Node("Brace");
 
     private static class Node extends IElementType {
         public Node(String debugName) {
@@ -466,13 +466,13 @@ public class SchemaParser implements PsiParser {
 
         private void parseCommandDefinition() {
             PsiBuilder.Marker marker = builder.mark();
-            consumeTokenAs(COMMAND_DEFINITION);
+            consumeTokenAs(KEYWORD);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, COMMAND_DEFINITION, Construct.STATEMENT, "Expected command response after 'command'.");
                 return;
             }
             String response = getIdentifier();
-            consumeTokenAs(COMMAND_RESPONSE);
+            consumeTokenAs(TYPE_NAME);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected command name after 'command %s'.", response);
@@ -492,7 +492,7 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             String request = getIdentifier();
-            consumeTokenAs(COMMAND_REQUEST);
+            consumeTokenAs(TYPE_NAME);
             if (!isToken(SchemaLexer.RBRACKET)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
                         "Expected ')' after 'command %s %s(%s'.", response, name, request);
