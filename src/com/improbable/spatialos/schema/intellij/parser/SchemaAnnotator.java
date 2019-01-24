@@ -1,9 +1,11 @@
 package com.improbable.spatialos.schema.intellij.parser;
 
+import com.intellij.lang.ASTNode;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SchemaAnnotator implements Annotator {
-    private static final List<String> OPTION_VALUES = Arrays.asList("true", "false");
+    public static final List<String> OPTION_VALUES = Arrays.asList("true", "false");
     private static final List<String> BUILT_IN_GENERIC_TYPES = Arrays.asList("option", "list", "map");
     private static final List<String> BUILT_IN_TYPES = Arrays.asList(
             "double", "float", "string", "bytes", "int32", "int64", "uint32", "uint64", "sint32", "sint64", "fixed32",
@@ -20,6 +22,11 @@ public class SchemaAnnotator implements Annotator {
 
     @Override
     public void annotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
+        if(element.getNode().getElementType() instanceof SchemaParser.RangedNode) {
+            for (SchemaParser.RangedNodeEntry entry : ((SchemaParser.RangedNode) element.getNode().getElementType()).entries) {
+                highlight(holder, element, entry.attributes, entry.from, entry.to);
+            }
+        }
         if (element.getNode().getElementType() == SchemaParser.KEYWORD) {
             highlight(holder, element, DefaultLanguageHighlighterColors.KEYWORD);
         }
@@ -38,9 +45,6 @@ public class SchemaAnnotator implements Annotator {
             } else {
                 highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
             }
-        }
-        if(element.getNode().getElementType() == SchemaParser.ANNOTATION) {
-            highlight(holder, element, DefaultLanguageHighlighterColors.METADATA);
         }
         if(element.getNode().getElementType() == SchemaParser.COMMAND_NAME) {
             highlight(holder, element, DefaultLanguageHighlighterColors.INSTANCE_METHOD);
@@ -62,6 +66,11 @@ public class SchemaAnnotator implements Annotator {
 
     private void highlight(@NotNull AnnotationHolder holder, @NotNull PsiElement element,
                            @NotNull TextAttributesKey attributes) {
-        holder.createInfoAnnotation(element, "").setTextAttributes(attributes);
+        holder.createInfoAnnotation(element, null).setTextAttributes(attributes);
+    }
+
+    private void highlight(@NotNull AnnotationHolder holder, @NotNull PsiElement element,
+                           @NotNull TextAttributesKey attributes, int start, int end) {
+        holder.createInfoAnnotation(new TextRange(element.getTextOffset() + start, element.getTextOffset() + end), null).setTextAttributes(attributes);
     }
 }

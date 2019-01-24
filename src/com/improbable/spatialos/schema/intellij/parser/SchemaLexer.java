@@ -27,6 +27,7 @@ public class SchemaLexer extends Lexer {
     public static final IElementType RANGLE = new Token(">");
     public static final IElementType EQUALS = new Token("=");
     public static final IElementType COMMA = new Token(",");
+    public static final IElementType COLON = new Token(":");
     public static final IElementType SEMICOLON = new Token(";");
 
     private static final String IDENTIFIER_PATTERN_STR = "[_a-zA-Z][_a-zA-Z0-9]*(\\.([_a-zA-Z][_a-zA-Z0-9]*)?)*";
@@ -39,12 +40,15 @@ public class SchemaLexer extends Lexer {
     private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\n\"]*\"?");
     private static final Pattern LBRACE_PATTERN = Pattern.compile("\\{");
     private static final Pattern RBRACE_PATTERN = Pattern.compile("}");
-    private static final Pattern LBRACKET_PATTERN = Pattern.compile("\\(");
-    private static final Pattern RBRACKET_PATTERN = Pattern.compile("\\)");
+    private static final Pattern LPARENTHESES_PATTERN = Pattern.compile("\\(");
+    private static final Pattern RPARENTHESES_PATTERN = Pattern.compile("\\)");
+    private static final Pattern LBRACKET_PATTERN = Pattern.compile("\\[");
+    private static final Pattern RBRACKET_PATTERN = Pattern.compile("]");
     private static final Pattern LANGLE_PATTERN = Pattern.compile("<");
     private static final Pattern RANGLE_PATTERN = Pattern.compile(">");
     private static final Pattern EQUALS_PATTERN = Pattern.compile("=");
     private static final Pattern COMMA_PATTERN = Pattern.compile(",");
+    private static final Pattern COLON_PATTERN = Pattern.compile(":");
     private static final Pattern SEMICOLON_PATTERN = Pattern.compile(";");
 
     private static class Token extends IElementType {
@@ -73,13 +77,16 @@ public class SchemaLexer extends Lexer {
             !checkCurrentToken(STRING_PATTERN, STRING) &&
             !checkCurrentToken(LBRACE_PATTERN, LBRACE) &&
             !checkCurrentToken(RBRACE_PATTERN, RBRACE) &&
-            !checkCurrentToken(LBRACKET_PATTERN, LPARENTHESES) &&
-            !checkCurrentToken(RBRACKET_PATTERN, RPARENTHESES) &&
+            !checkCurrentToken(LPARENTHESES_PATTERN, LPARENTHESES) &&
+            !checkCurrentToken(RPARENTHESES_PATTERN, RPARENTHESES) &&
             !checkCurrentToken(LANGLE_PATTERN, LANGLE) &&
             !checkCurrentToken(RANGLE_PATTERN, RANGLE) &&
             !checkCurrentToken(EQUALS_PATTERN, EQUALS) &&
             !checkCurrentToken(COMMA_PATTERN, COMMA) &&
-            !checkCurrentToken(SEMICOLON_PATTERN, SEMICOLON)) {
+            !checkCurrentToken(SEMICOLON_PATTERN, SEMICOLON) &&
+            !checkCurrentToken(LBRACKET_PATTERN, LBRACKET) &&
+            !checkCurrentToken(RBRACKET_PATTERN, RBRACKET) &&
+            !checkCurrentToken(COLON_PATTERN, COLON)) {
             currentTokenEnd = 1 + currentTokenStart;
             currentToken = TokenType.BAD_CHARACTER;
         }
