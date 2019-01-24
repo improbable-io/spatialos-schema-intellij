@@ -4,10 +4,16 @@ import com.improbable.spatialos.schema.intellij.SchemaLanguage;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiParser;
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class SchemaParser implements PsiParser {
     public static final SchemaParser SCHEMA_PARSER = new SchemaParser();
@@ -60,10 +66,40 @@ public class SchemaParser implements PsiParser {
     public static final IElementType COMMAND_DEFINITION = new Node("Command Definition");
     public static final IElementType COMMAND_NAME = new Node("Command Name");
     public static final IElementType ANNOTATION = new Node("Annotation Definition");
+    public static final IElementType ANNOTATION_FIELD = new Node("Annotation Field");
+    public static final IElementType ANNOTATION_FIELD_ARRAY = new Node("Annotation Field Array");
+
+    public static final Pattern OPTION_PATTERN = Pattern.compile("(?i)(?:\\d+\\.?\\d*|true|false|\"[^\"]*\"?|_)");
 
     private static class Node extends IElementType {
         public Node(String debugName) {
             super(debugName, SchemaLanguage.SCHEMA_LANGUAGE);
+        }
+    }
+
+    public static class RangedNode extends Node {
+
+        public final List<RangedNodeEntry> entries = new ArrayList<>();
+
+        public RangedNode(String debugName) {
+            super(debugName);
+        }
+
+        public RangedNode addEntry(int from, int to, TextAttributesKey attributes) {
+            entries.add(new RangedNodeEntry(from, to, attributes));
+            return this;
+        }
+    }
+
+    public static class RangedNodeEntry {
+        public final int from;
+        public final int to;
+        public final TextAttributesKey attributes;
+
+        private RangedNodeEntry(int from, int to, TextAttributesKey attributes) {
+            this.from = from;
+            this.to = to;
+            this.attributes = attributes;
         }
     }
 
@@ -457,10 +493,6 @@ public class SchemaParser implements PsiParser {
                     parseCommandDefinition();
                     continue;
                 }
-                if(isIdentifier(KEYWORD_ANNOTATION_START)) {
-                    parseAnnotationDefinition();
-                    continue;
-                }
                 if (isToken(SchemaLexer.IDENTIFIER)) {
                     parseFieldDefinition();
                     continue;
@@ -469,17 +501,178 @@ public class SchemaParser implements PsiParser {
             }
         }
 
-        private void parseAnnotationDefinition() {
+        private void parseAnnotation() {
             PsiBuilder.Marker marker = builder.mark();
-            consumeTokenAs(KEYWORD);
+            consumeTokenAs(null);
+
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, ANNOTATION, Construct.STATEMENT, "Expected type after '['.");
                 return;
             }
             consumeTokenAs(TYPE_NAME);
 
+            if(isToken(SchemaLexer.LPARENTHESES)) { //If the annotation has fields
+                if(builder.lookAhead(2) == SchemaLexer.EQUALS) { //fully-qualified names
+                    consumeTokenAs(null);
+                    while(true) {
+                        if (!isToken(SchemaLexer.IDENTIFIER)) {
+                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected field identifier");
+                            return;
+                        }
+                        consumeTokenAs(null);
+                        if (!isToken(SchemaLexer.EQUALS)) {
+                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected '='");
+                            return;
+                        }
+                        consumeTokenAs(null);
+                        parseAnnotationField();
+
+                        if(isToken(SchemaLexer.RPARENTHESES)) {
+                            consumeTokenAs(null);
+                            break;
+                        }
+
+                        if(!isToken(SchemaLexer.COMMA)) {
+                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected ',' or end of annotation");
+                            return;
+                        }
+                        consumeTokenAs(null);
+                    }
+                } else {
+                    parseAnnotationFieldArray();
+                }
+            }
+
+            if(!isToken(SchemaLexer.RBRACKET)) {
+                error(marker, ANNOTATION, Construct.STATEMENT, "Expected end of annotation ']'");
+                return;
+            }
+            consumeTokenAs(null);
+
             marker.done(ANNOTATION);
         }
+
+        private void parseAnnotationFieldArray() {
+            PsiBuilder.Marker marker = builder.mark();
+            consumeTokenAs(null);
+            while (true) {
+                if(builder.getTokenText() == null) { //Something gone wrong. Invalid input?
+                    break;
+                }
+                parseAnnotationField();
+                if(isToken(SchemaLexer.RPARENTHESES)) {
+                    break;
+                }
+                if(!isToken(SchemaLexer.COMMA)) {
+                    error(marker, ANNOTATION_FIELD_ARRAY, Construct.STATEMENT, "Expected ',' or end of array");
+                    return;
+                }
+                consumeTokenAs(null);
+            }
+            consumeTokenAs(null);
+            marker.done(ANNOTATION_FIELD_ARRAY);
+        }
+
+        private void parseAnnotationField() {
+            PsiBuilder.Marker marker = builder.mark();
+            for(;;) {
+                if(builder.getTokenText() != null && OPTION_PATTERN.matcher(builder.getTokenText()).matches()) { //If the text matches the option pattern, or its a number, or its a '.' and the previous match was a number
+                    boolean num = isToken(SchemaLexer.INTEGER);
+                    consumeTokenAs(OPTION_VALUE);
+                    if(num && isIdentifier(".")) { //If the next thing is a decimal point
+                        consumeTokenAs(OPTION_VALUE);
+                        if(!isToken(SchemaLexer.INTEGER)) {
+                            error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Cannot have a decimal with no decimal point");
+                            return;
+                        }
+                        consumeTokenAs(OPTION_VALUE);
+                    }
+                    break;
+                }
+                if(isToken(SchemaLexer.LBRACKET)) { //Array
+                    consumeTokenAs(null);
+                    if(isToken(SchemaLexer.RBRACKET)) { //Empty array
+                        consumeTokenAs(null);
+                    } else {
+                        while(true) {
+                            parseAnnotationField();
+
+                            if(isToken(SchemaLexer.RBRACKET)) {
+                                consumeTokenAs(null);
+                                break;
+                            }
+                            if(!isToken(SchemaLexer.COMMA)) {
+                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ',' or end of array");
+                                return;
+                            }
+                            consumeTokenAs(null);
+                        }
+                    }
+                    break;
+                }
+
+                if(isToken(SchemaLexer.LBRACE)) { //Map
+                    consumeTokenAs(null);
+                    if(isToken(SchemaLexer.RBRACE)) { //Empty map
+                        consumeTokenAs(null);
+                    } else {
+                        while(true) {
+                            parseAnnotationField();
+                            if(!isToken(SchemaLexer.COLON)) {
+                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ':' in map");
+                                return;
+                            }
+                            consumeTokenAs(TYPE_NAME); // ':'
+                            parseAnnotationField();
+
+                            if(isToken(SchemaLexer.RBRACE)) {
+                                consumeTokenAs(null);
+                                break;
+                            }
+                            if(!isToken(SchemaLexer.COMMA)) {
+                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ',' or end of map");
+                                return;
+                            }
+                            consumeTokenAs(null);
+                        }
+                    }
+                    break;
+                }
+
+                if(isToken(SchemaLexer.IDENTIFIER)) {
+                    if(builder.lookAhead(1) == SchemaLexer.LPARENTHESES) { //Initiate a new object
+                        RangedNode node = new RangedNode("Method Initializing");
+
+                        //Make all '.' in the string white
+                        int off = 0;
+                        for (int i = 0; i < builder.getTokenText().toCharArray().length; i++) {
+                            if(builder.getTokenText().toCharArray()[i] == '.') {
+                                node.addEntry(off, i, DefaultLanguageHighlighterColors.METADATA);
+                                off = i + 1;
+                            }
+                        }
+                        node.addEntry(off, builder.getTokenText().length(), DefaultLanguageHighlighterColors.METADATA);
+                        consumeTokenAs(node);
+
+                        parseAnnotationFieldArray();
+                        break;
+                    } else { //Enum value
+                        int index = builder.getTokenText().indexOf('.');
+                        if(index == -1) {
+                            consumeTokenAs(TYPE_NAME); //Shouldn't happen?
+                            break;
+                        }
+                        consumeTokenAs(new RangedNode("Enum Reference")
+                                .addEntry(0, index, DefaultLanguageHighlighterColors.METADATA)
+                                .addEntry(index + 1, builder.getTokenText().length(), DefaultLanguageHighlighterColors.NUMBER));
+                        break;
+                    }
+                }
+                break;
+            }
+            marker.done(ANNOTATION_FIELD);
+        }
+
 
         private void parseCommandDefinition() {
             PsiBuilder.Marker marker = builder.mark();
@@ -610,6 +803,8 @@ public class SchemaParser implements PsiParser {
                 parseTypeDefinition();
             } else if (isIdentifier(KEYWORD_COMPONENT)) {
                 parseComponentDefinition();
+            } else if(builder.getTokenText() != null && builder.getTokenText().equals(KEYWORD_ANNOTATION_START)) {
+                parseAnnotation();
             } else {
                 error(null, null, Construct.TOP_LEVEL,
                       "Expected '%s', '%s', '%s', '%s' or '%s' definition at top-level.",
