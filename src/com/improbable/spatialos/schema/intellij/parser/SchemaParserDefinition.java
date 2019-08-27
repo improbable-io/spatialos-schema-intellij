@@ -2,7 +2,6 @@ package com.improbable.spatialos.schema.intellij.parser;
 
 import com.improbable.spatialos.schema.intellij.SchemaFileType;
 import com.improbable.spatialos.schema.intellij.SchemaLanguage;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.intellij.extapi.psi.PsiFileBase;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.ParserDefinition;
@@ -55,7 +54,10 @@ public class SchemaParserDefinition implements ParserDefinition {
 
     @Override
     public @NotNull PsiElement createElement(ASTNode astNode) {
-        return new ASTWrapperPsiElement(astNode);
+        if(astNode.getElementType() == SchemaParser.DEFINITION_NAME || astNode.getElementType() == SchemaParser.FIELD_NAME) {
+            return new SchemaPsiRenameableElement(astNode);
+        }
+        return new SchemaPsiElement(astNode);
     }
 
     @Override

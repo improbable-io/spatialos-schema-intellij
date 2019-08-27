@@ -4,15 +4,14 @@ import com.improbable.spatialos.schema.intellij.SchemaLanguage;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.PsiParser;
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
-import com.intellij.openapi.editor.colors.TextAttributesKey;
+import com.intellij.lang.annotation.AnnotationHolder;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 public class SchemaParser implements PsiParser {
@@ -23,7 +22,6 @@ public class SchemaParser implements PsiParser {
     public static final String KEYWORD_ENUM = "enum";
     public static final String KEYWORD_TYPE = "type";
     public static final String KEYWORD_COMPONENT = "component";
-    public static final String KEYWORD_OPTION = "option";
     public static final String KEYWORD_ID = "id";
     public static final String KEYWORD_DATA = "data";
     public static final String KEYWORD_EVENT = "event";
@@ -41,65 +39,64 @@ public class SchemaParser implements PsiParser {
     public static final IElementType IMPORT_DEFINITION = new Node("Import Definition");
     public static final IElementType IMPORT_FILENAME = new Node("Import Filename");
 
-    public static final IElementType OPTION_DEFINITION = new Node("Option Definition");
-    public static final IElementType OPTION_NAME = new Node("Option Name");
-    public static final IElementType OPTION_VALUE = new Node("Option Value");
-
     public static final IElementType TYPE_NAME = new Node("Type Name");
     public static final IElementType TYPE_PARAMETER_NAME = new Node("Type Parameter Name");
 
-    public static final IElementType FIELD_TYPE = new Node("Field Type");
+    public static final IElementType FIELD_TYPE = new PartNode("Field Type", SchemaAnnotator::highlightFieldType);
     public static final IElementType FIELD_NAME = new Node("Field Name");
     public static final IElementType FIELD_NUMBER = new Node("Field Number");
+    public static final IElementType FIELD_REFERNCE = new Node("Field Reference");
 
     public static final IElementType ENUM_DEFINITION = new Node("Enum Definition");
-    public static final IElementType ENUM_VALUE_DEFINITION = new Node("Enum Value Definition");
+    public static final IElementType ENUM_VALUE_DEFINITION = new PartNode("Enum Value Definition", SchemaAnnotator::highlightEnumEntry);
 
     public static final IElementType DATA_DEFINITION = new Node("Data Definition");
-    public static final IElementType FIELD_DEFINITION = new Node("Field Definition");
+    public static final IElementType FIELD_DEFINITION = new PartNode("Field Definition", SchemaAnnotator::highlightField);
     public static final IElementType EVENT_DEFINITION = new Node("Event Definition");
 
     public static final IElementType TYPE_DEFINITION = new Node("Type Definition");
     public static final IElementType COMPONENT_DEFINITION = new Node("Component Definition");
     public static final IElementType COMPONENT_ID_DEFINITION = new Node("Component ID Definition");
 
-    public static final IElementType COMMAND_DEFINITION = new Node("Command Definition");
-    public static final IElementType COMMAND_NAME = new Node("Command Name");
-    public static final IElementType ANNOTATION = new Node("Annotation Definition");
-    public static final IElementType ANNOTATION_FIELD = new Node("Annotation Field");
-    public static final IElementType ANNOTATION_FIELD_ARRAY = new Node("Annotation Field Array");
+    public static final IElementType COMMAND_DEFINITION = new PartNode("Command Definition", SchemaAnnotator::highlightCommand);
 
-    public static final Pattern OPTION_PATTERN = Pattern.compile("(?i)(?:\\d+\\.?\\d*|true|false|\"[^\"]*\"?|_)");
+    public static final IElementType ANNOTATION_DEFINITION = new PartNode("Annotation Definition", SchemaAnnotator::highlightAnnotation);
+    public static final IElementType ANNOTATION_QUALIFIER = new Node("Annotation Qualifier"); //TODO: rename
+    public static final IElementType TYPE_NAME_REFERENCE = new Node("Type Name Reference");
 
-    private static class Node extends IElementType {
+    public static final IElementType FIELD_ARRAY = new Node("Annotation Field Array");
+
+    public static final IElementType PRIMITIVE_INTEGER = new PartNode("Primitive Integer", SchemaAnnotator::highlightInteger);
+    public static final IElementType PRIMITIVE_DOUBLE = new PartNode("Primitive Double", SchemaAnnotator::highlightDouble);
+    public static final IElementType PRIMITIVE_BOOLEAN = new PartNode("Primitive Boolean", SchemaAnnotator::highlightBoolean);
+    public static final IElementType PRIMITIVE_STRING = new PartNode("Primitive String", SchemaAnnotator::highlightString);
+
+    public static final IElementType EMPTY_OPTION = new Node("Empty Option");
+
+    public static final IElementType FIELD_LIST = new Node("Annotation Field List");
+
+    public static final IElementType FIELD_MAP = new Node("Annotation Field Map");
+    public static final IElementType FIELD_MAP_ENTRY = new Node("Field Map Entry");
+
+    public static final IElementType FIELD_NEWINSTANCE = new PartNode("Annotation Field New Instance", SchemaAnnotator::highlightNewInstance);
+    public static final IElementType FIELD_NEWINSTANCE_NAME = new Node("Annotation Field New Instance Name");
+
+    public static final IElementType FIELD_ENUM_OR_INSTANCE = new PartNode("Annotation Field Enum Or Empty Instance", SchemaAnnotator::highlightEnumInstance);
+
+
+    public static class Node extends IElementType {
         public Node(String debugName) {
             super(debugName, SchemaLanguage.SCHEMA_LANGUAGE);
         }
     }
 
-    public static class RangedNode extends Node {
+    public static class PartNode extends Node {
 
-        public final List<RangedNodeEntry> entries = new ArrayList<>();
+        public final BiConsumer<PsiElement, AnnotationHolder> highlighter;
 
-        public RangedNode(String debugName) {
+        public PartNode(String debugName, BiConsumer<PsiElement, AnnotationHolder> highlighter) {
             super(debugName);
-        }
-
-        public RangedNode addEntry(int from, int to, TextAttributesKey attributes) {
-            entries.add(new RangedNodeEntry(from, to, attributes));
-            return this;
-        }
-    }
-
-    public static class RangedNodeEntry {
-        public final int from;
-        public final int to;
-        public final TextAttributesKey attributes;
-
-        private RangedNodeEntry(int from, int to, TextAttributesKey attributes) {
-            this.from = from;
-            this.to = to;
-            this.attributes = attributes;
+            this.highlighter = highlighter;
         }
     }
 
@@ -132,13 +129,13 @@ public class SchemaParser implements PsiParser {
 
             while (builder.getTokenType() != null && !builder.eof()) {
                 if ((construct == Construct.STATEMENT || construct == Construct.TOP_LEVEL) &&
-                    isToken(SchemaLexer.SEMICOLON)) {
+                        isToken(SchemaLexer.SEMICOLON)) {
                     errorMarker.error(errorMessage);
                     builder.advanceLexer();
                     return;
                 }
                 if ((construct == Construct.BRACES || construct == Construct.TOP_LEVEL) &&
-                    isToken(SchemaLexer.RBRACE)) {
+                        isToken(SchemaLexer.RBRACE)) {
                     errorMarker.error(errorMessage);
                     builder.advanceLexer();
                     return;
@@ -171,11 +168,6 @@ public class SchemaParser implements PsiParser {
             }
         }
 
-        private String getString() {
-            String text = builder.getTokenText();
-            return text == null ? "" : text.substring(1, text.length() - 2);
-        }
-
         private boolean isToken(IElementType token) {
             return builder.getTokenType() == token;
         }
@@ -198,13 +190,13 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(KEYWORD);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, PACKAGE_DEFINITION, Construct.STATEMENT,
-                      "Expected a package name after '%s'.", KEYWORD_PACKAGE);
+                        "Expected a package name after '%s'.", KEYWORD_PACKAGE);
                 return;
             }
             consumeTokenAs(PACKAGE_NAME);
             if (!isToken(SchemaLexer.SEMICOLON)) {
                 error(marker, PACKAGE_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' after %s definition.", KEYWORD_PACKAGE);
+                        "Expected ';' after %s definition.", KEYWORD_PACKAGE);
                 return;
             }
             consumeTokenAs(null);
@@ -216,57 +208,41 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(KEYWORD);
             if (!isToken(SchemaLexer.STRING)) {
                 error(marker, IMPORT_DEFINITION, Construct.STATEMENT,
-                      "Expected a quoted filename after '%s'.", KEYWORD_IMPORT);
+                        "Expected a quoted filename after '%s'.", KEYWORD_IMPORT);
                 return;
             }
-            String filename = getString();
+            String filename = builder.getTokenText();
             consumeTokenAs(IMPORT_FILENAME);
             if (!isToken(SchemaLexer.SEMICOLON)) {
                 error(marker, IMPORT_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' after '%s \"%s\"'.", KEYWORD_IMPORT, filename);
+                        "Expected ';' after '%s \"%s\"'.", KEYWORD_IMPORT, filename);
                 return;
             }
             consumeTokenAs(null);
             marker.done(IMPORT_DEFINITION);
         }
 
-        private void parseOptionDefinition() {
-            PsiBuilder.Marker marker = builder.mark();
-            consumeTokenAs(KEYWORD);
-            if (!isToken(SchemaLexer.IDENTIFIER)) {
-                error(marker, OPTION_DEFINITION, Construct.STATEMENT,
-                      "Expected identifier after '%s'.", KEYWORD_OPTION);
-                return;
-            }
-            String name = getIdentifier();
-            consumeTokenAs(OPTION_NAME);
-            if (!isToken(SchemaLexer.EQUALS)) {
-                error(marker, OPTION_DEFINITION, Construct.STATEMENT,
-                      "Expected '=' after '%s %s'.", KEYWORD_OPTION, name);
-                return;
-            }
-            consumeTokenAs(null);
-            if (!isToken(SchemaLexer.IDENTIFIER)) {
-                error(marker, OPTION_DEFINITION, Construct.STATEMENT,
-                      "Expected option value after '%s %s = '.", KEYWORD_OPTION, name);
-                return;
-            }
-            String value = getIdentifier();
-            consumeTokenAs(OPTION_VALUE);
-            if (!isToken(SchemaLexer.SEMICOLON)) {
-                error(marker, OPTION_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' after '%s %s = %s'.", KEYWORD_OPTION, name, value);
-                return;
-            }
-            consumeTokenAs(null);
-            marker.done(OPTION_DEFINITION);
-        }
-
         private @Nullable String parseTypeName(@NotNull PsiBuilder.Marker marker) {
             PsiBuilder.Marker typeMarker = builder.mark();
             String name = getIdentifier();
+            String rawName = name;
+            boolean isTransient = "transient".equals(rawName);
+
+            if(isTransient) {
+                consumeTokenAs(KEYWORD);
+                typeMarker.drop();
+                rawName = name = getIdentifier();
+                typeMarker = builder.mark();
+            }
+
+
             consumeTokenAs(TYPE_NAME);
             if (!isToken(SchemaLexer.LANGLE)) {
+                if(isTransient) {
+                    typeMarker.drop();
+                    error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Cannot use transient on non collection", name);
+                    return null;
+                }
                 typeMarker.done(FIELD_TYPE);
                 return name;
             }
@@ -277,12 +253,33 @@ public class SchemaParser implements PsiParser {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Expected typename after '%s'.", name);
                 return null;
             }
+            int numParams;
+            switch (rawName) {
+                case "map":
+                    numParams = 2;
+                    break;
+                case "option":
+                case "list":
+                    numParams = 1;
+                    break;
+                default:
+                    typeMarker.drop();
+                    error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Unknown generic type '%s'.", rawName);
+                    return null;
+            }
             name = name + getIdentifier();
             consumeTokenAs(TYPE_PARAMETER_NAME);
+            int params = 0;
             while (true) {
+                params++;
                 if (isToken(SchemaLexer.RANGLE)) {
                     name = name + '>';
                     consumeTokenAs(null);
+                    if(params != numParams) {
+                        typeMarker.drop();
+                        error(marker, FIELD_DEFINITION, Construct.STATEMENT, "Wrong number of generics. Expected %s, got %s", numParams, params);
+                        return null;
+                    }
                     typeMarker.done(FIELD_TYPE);
                     return name;
                 }
@@ -318,20 +315,20 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(FIELD_NAME);
             if (!isToken(SchemaLexer.EQUALS)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
-                      "Expected '=' after '%s %s'.", typeName, fieldName);
+                        "Expected '=' after '%s %s'.", typeName, fieldName);
                 return;
             }
             consumeTokenAs(null);
             if (!isToken(SchemaLexer.INTEGER)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
-                      "Expected field number after '%s %s = '.", typeName, fieldName);
+                        "Expected field number after '%s %s = '.", typeName, fieldName);
                 return;
             }
             int fieldNumber = getInteger();
             consumeTokenAs(FIELD_NUMBER);
             if (!isToken(SchemaLexer.SEMICOLON)) {
                 error(marker, FIELD_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' after '%s %s = %d'.", typeName, fieldName, fieldNumber);
+                        "Expected ';' after '%s %s = %d'.", typeName, fieldName, fieldNumber);
                 return;
             }
             consumeTokenAs(null);
@@ -350,14 +347,14 @@ public class SchemaParser implements PsiParser {
                 consumeTokenAs(null);
                 if (!isToken(SchemaLexer.INTEGER)) {
                     error(marker, ENUM_VALUE_DEFINITION, Construct.STATEMENT,
-                          "Expected integer enum value after '%s = '.", name);
+                            "Expected integer enum value after '%s = '.", name);
                     continue;
                 }
                 int value = getInteger();
                 consumeTokenAs(FIELD_NUMBER);
                 if (!isToken(SchemaLexer.SEMICOLON)) {
                     error(marker, ENUM_VALUE_DEFINITION, Construct.STATEMENT,
-                          "Expected ';' after '%s = %d'.", name, value);
+                            "Expected ';' after '%s = %d'.", name, value);
                     continue;
                 }
                 consumeTokenAs(null);
@@ -367,16 +364,6 @@ public class SchemaParser implements PsiParser {
 
         private void parseTypeContents() {
             while (true) {
-                if (isIdentifier(KEYWORD_OPTION)) {
-                    PsiBuilder.Marker marker = builder.mark();
-                    builder.advanceLexer();
-                    boolean lookaheadIsOption = !isToken(SchemaLexer.LANGLE);
-                    marker.rollbackTo();
-                    if (lookaheadIsOption) {
-                        parseOptionDefinition();
-                        continue;
-                    }
-                }
                 if (isIdentifier(KEYWORD_ENUM)) {
                     parseEnumDefinition();
                     continue;
@@ -398,20 +385,20 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(KEYWORD);
             if (!isToken(SchemaLexer.EQUALS)) {
                 error(marker, COMPONENT_ID_DEFINITION, Construct.STATEMENT,
-                      "Expected '=' after '%s'.", KEYWORD_ID);
+                        "Expected '=' after '%s'.", KEYWORD_ID);
                 return;
             }
             consumeTokenAs(null);
             if (!isToken(SchemaLexer.INTEGER)) {
                 error(marker, COMPONENT_ID_DEFINITION, Construct.STATEMENT,
-                      "Expected integer ID value after '%s = '.", KEYWORD_ID);
+                        "Expected integer ID value after '%s = '.", KEYWORD_ID);
                 return;
             }
             int value = getInteger();
             consumeTokenAs(FIELD_NUMBER);
             if (!isToken(SchemaLexer.SEMICOLON)) {
                 error(marker, COMPONENT_ID_DEFINITION, Construct.STATEMENT,
-                      "Expected ';' after '%s = %d'.", KEYWORD_ID, value);
+                        "Expected ';' after '%s = %d'.", KEYWORD_ID, value);
                 return;
             }
             consumeTokenAs(null);
@@ -451,7 +438,7 @@ public class SchemaParser implements PsiParser {
             }
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, EVENT_DEFINITION, Construct.STATEMENT,
-                      "Expected field name after '%s %s'.", KEYWORD_EVENT, typeName);
+                        "Expected field name after '%s %s'.", KEYWORD_EVENT, typeName);
                 return;
             }
             String fieldName = getIdentifier();
@@ -467,16 +454,6 @@ public class SchemaParser implements PsiParser {
 
         private void parseComponentContents() {
             while (true) {
-                if (isIdentifier(KEYWORD_OPTION)) {
-                    PsiBuilder.Marker marker = builder.mark();
-                    builder.advanceLexer();
-                    boolean lookaheadIsOption = !isToken(SchemaLexer.LANGLE);
-                    marker.rollbackTo();
-                    if (lookaheadIsOption) {
-                        parseOptionDefinition();
-                        continue;
-                    }
-                }
                 if (isIdentifier(KEYWORD_ID)) {
                     parseComponentIdDefinition();
                     continue;
@@ -506,26 +483,31 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(null);
 
             if (!isToken(SchemaLexer.IDENTIFIER)) {
-                error(marker, ANNOTATION, Construct.STATEMENT, "Expected type after '['.");
+                error(marker, ANNOTATION_DEFINITION, Construct.STATEMENT, "Expected type after '['.");
                 return;
             }
-            consumeTokenAs(TYPE_NAME);
+            consumeTokenAs(TYPE_NAME_REFERENCE);
 
             if(isToken(SchemaLexer.LPARENTHESES)) { //If the annotation has fields
                 if(builder.lookAhead(2) == SchemaLexer.EQUALS) { //fully-qualified names
                     consumeTokenAs(null);
                     while(true) {
+                        PsiBuilder.Marker element = builder.mark();
                         if (!isToken(SchemaLexer.IDENTIFIER)) {
-                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected field identifier");
+                            element.drop();
+                            error(marker, ANNOTATION_DEFINITION, Construct.STATEMENT, "Expected field identifier");
                             return;
                         }
-                        consumeTokenAs(null);
+                        consumeTokenAs(FIELD_REFERNCE);
                         if (!isToken(SchemaLexer.EQUALS)) {
-                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected '='");
+                            element.drop();
+                            error(marker, ANNOTATION_DEFINITION, Construct.STATEMENT, "Expected '='");
                             return;
                         }
                         consumeTokenAs(null);
                         parseAnnotationField();
+
+                        element.done(ANNOTATION_QUALIFIER);
 
                         if(isToken(SchemaLexer.RPARENTHESES)) {
                             consumeTokenAs(null);
@@ -533,7 +515,7 @@ public class SchemaParser implements PsiParser {
                         }
 
                         if(!isToken(SchemaLexer.COMMA)) {
-                            error(marker, ANNOTATION, Construct.STATEMENT, "Expected ',' or end of annotation");
+                            error(marker, ANNOTATION_DEFINITION, Construct.STATEMENT, "Expected ',' or end of annotation");
                             return;
                         }
                         consumeTokenAs(null);
@@ -544,133 +526,136 @@ public class SchemaParser implements PsiParser {
             }
 
             if(!isToken(SchemaLexer.RBRACKET)) {
-                error(marker, ANNOTATION, Construct.STATEMENT, "Expected end of annotation ']'");
+                error(marker, ANNOTATION_DEFINITION, Construct.STATEMENT, "Expected end of annotation ']'");
                 return;
             }
             consumeTokenAs(null);
 
-            marker.done(ANNOTATION);
+            marker.done(ANNOTATION_DEFINITION);
         }
 
         private void parseAnnotationFieldArray() {
             PsiBuilder.Marker marker = builder.mark();
             consumeTokenAs(null);
-            while (true) {
-                if(builder.getTokenText() == null) { //Something gone wrong. Invalid input?
-                    break;
+            if(!isToken(SchemaLexer.RPARENTHESES)) {
+                while (true) {
+                    if(builder.getTokenText() == null) { //Something gone wrong. Invalid input?
+                        break;
+                    }
+                    parseAnnotationField();
+                    if(isToken(SchemaLexer.RPARENTHESES)) {
+                        break;
+                    }
+                    if(!isToken(SchemaLexer.COMMA)) {
+                        error(marker, FIELD_ARRAY, Construct.STATEMENT, "Expected ',' or end of array, found %s", builder.getTokenText());
+                        return;
+                    }
+                    consumeTokenAs(null);
                 }
-                parseAnnotationField();
-                if(isToken(SchemaLexer.RPARENTHESES)) {
-                    break;
-                }
-                if(!isToken(SchemaLexer.COMMA)) {
-                    error(marker, ANNOTATION_FIELD_ARRAY, Construct.STATEMENT, "Expected ',' or end of array");
-                    return;
-                }
-                consumeTokenAs(null);
             }
             consumeTokenAs(null);
-            marker.done(ANNOTATION_FIELD_ARRAY);
+            marker.done(FIELD_ARRAY);
         }
 
         private void parseAnnotationField() {
-            PsiBuilder.Marker marker = builder.mark();
-            for(;;) {
-                if(builder.getTokenText() != null && OPTION_PATTERN.matcher(builder.getTokenText()).matches()) { //If the text matches the option pattern, or its a number, or its a '.' and the previous match was a number
-                    boolean num = isToken(SchemaLexer.INTEGER);
-                    consumeTokenAs(OPTION_VALUE);
-                    if(num && isIdentifier(".")) { //If the next thing is a decimal point
-                        consumeTokenAs(OPTION_VALUE);
-                        if(!isToken(SchemaLexer.INTEGER)) {
-                            error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Cannot have a decimal with no decimal point");
-                            return;
-                        }
-                        consumeTokenAs(OPTION_VALUE);
-                    }
-                    break;
-                }
-                if(isToken(SchemaLexer.LBRACKET)) { //Array
+            if(isToken(SchemaLexer.INTEGER)) {
+                PsiBuilder.Marker marker = builder.mark();
+                String text = builder.getTokenText();
+                consumeTokenAs(null);
+                if(isIdentifier(".")) {
                     consumeTokenAs(null);
-                    if(isToken(SchemaLexer.RBRACKET)) { //Empty array
-                        consumeTokenAs(null);
-                    } else {
-                        while(true) {
-                            parseAnnotationField();
-
-                            if(isToken(SchemaLexer.RBRACKET)) {
-                                consumeTokenAs(null);
-                                break;
-                            }
-                            if(!isToken(SchemaLexer.COMMA)) {
-                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ',' or end of array");
-                                return;
-                            }
-                            consumeTokenAs(null);
-                        }
+                    if(!isToken(SchemaLexer.INTEGER)) {
+                        error(marker, PRIMITIVE_DOUBLE, Construct.STATEMENT, "Expected numbers after %s%s", text, builder.getTokenText());
+                        return;
                     }
-                    break;
-                }
-
-                if(isToken(SchemaLexer.LBRACE)) { //Map
                     consumeTokenAs(null);
-                    if(isToken(SchemaLexer.RBRACE)) { //Empty map
-                        consumeTokenAs(null);
-                    } else {
-                        while(true) {
-                            parseAnnotationField();
-                            if(!isToken(SchemaLexer.COLON)) {
-                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ':' in map");
-                                return;
-                            }
-                            consumeTokenAs(TYPE_NAME); // ':'
-                            parseAnnotationField();
-
-                            if(isToken(SchemaLexer.RBRACE)) {
-                                consumeTokenAs(null);
-                                break;
-                            }
-                            if(!isToken(SchemaLexer.COMMA)) {
-                                error(marker, ANNOTATION_FIELD, Construct.STATEMENT, "Expected ',' or end of map");
-                                return;
-                            }
-                            consumeTokenAs(null);
-                        }
-                    }
-                    break;
+                    marker.done(PRIMITIVE_DOUBLE);
+                    return;
                 }
+                marker.done(PRIMITIVE_INTEGER);
+                return;
+            }
+            if(isToken(SchemaLexer.BOOLEAN)) {
+                consumeTokenAs(PRIMITIVE_BOOLEAN);
+                return;
+            }
+            if(isToken(SchemaLexer.STRING)) {
+                consumeTokenAs(PRIMITIVE_STRING);
+                return;
+            }
+            if(isToken(SchemaLexer.LBRACKET)) { //List
+                PsiBuilder.Marker marker = builder.mark();
+                consumeTokenAs(null);
+                if(isToken(SchemaLexer.RBRACKET)) { //Empty list
+                    consumeTokenAs(null);
+                } else {
+                    while(true) {
+                        parseAnnotationField();
 
-                if(isToken(SchemaLexer.IDENTIFIER)) {
-                    if(builder.lookAhead(1) == SchemaLexer.LPARENTHESES) { //Initiate a new object
-                        RangedNode node = new RangedNode("Method Initializing");
-
-                        //Make all '.' in the string white
-                        int off = 0;
-                        for (int i = 0; i < builder.getTokenText().toCharArray().length; i++) {
-                            if(builder.getTokenText().toCharArray()[i] == '.') {
-                                node.addEntry(off, i, DefaultLanguageHighlighterColors.METADATA);
-                                off = i + 1;
-                            }
-                        }
-                        node.addEntry(off, builder.getTokenText().length(), DefaultLanguageHighlighterColors.METADATA);
-                        consumeTokenAs(node);
-
-                        parseAnnotationFieldArray();
-                        break;
-                    } else { //Enum value
-                        int index = builder.getTokenText().indexOf('.');
-                        if(index == -1) {
-                            consumeTokenAs(TYPE_NAME); //Shouldn't happen?
+                        if(isToken(SchemaLexer.RBRACKET)) {
+                            consumeTokenAs(null);
                             break;
                         }
-                        consumeTokenAs(new RangedNode("Enum Reference")
-                                .addEntry(0, index, DefaultLanguageHighlighterColors.METADATA)
-                                .addEntry(index + 1, builder.getTokenText().length(), DefaultLanguageHighlighterColors.NUMBER));
-                        break;
+                        if(!isToken(SchemaLexer.COMMA)) {
+                            error(marker, FIELD_LIST, Construct.STATEMENT, "Expected ',' or end of array");
+                            return;
+                        }
+                        consumeTokenAs(null);
                     }
                 }
-                break;
+                marker.done(FIELD_LIST);
+                return;
             }
-            marker.done(ANNOTATION_FIELD);
+
+            if(isToken(SchemaLexer.LBRACE)) { //Map
+                PsiBuilder.Marker marker = builder.mark();
+                consumeTokenAs(null);
+                if(isToken(SchemaLexer.RBRACE)) { //Empty map
+                    consumeTokenAs(null);
+                } else {
+                    while(true) {
+                        PsiBuilder.Marker entryMarker = builder.mark();
+                        parseAnnotationField();
+                        if(!isToken(SchemaLexer.COLON)) {
+                            entryMarker.drop();
+                            error(marker, FIELD_MAP, Construct.STATEMENT, "Expected ':' in map");
+                            return;
+                        }
+                        consumeTokenAs(null); // ':'
+                        parseAnnotationField();
+                        entryMarker.done(FIELD_MAP_ENTRY);
+
+                        if(isToken(SchemaLexer.RBRACE)) {
+                            consumeTokenAs(null);
+                            break;
+                        }
+                        if(!isToken(SchemaLexer.COMMA)) {
+                            error(marker, FIELD_MAP, Construct.STATEMENT, "Expected ',' or end of map");
+                            return;
+                        }
+                        consumeTokenAs(null);
+                    }
+                }
+                marker.done(FIELD_MAP);
+                return;
+            }
+            if(isIdentifier("_")) {//empty
+                consumeTokenAs(EMPTY_OPTION);
+                return;
+            }
+            if(isToken(SchemaLexer.IDENTIFIER)) {
+                if(builder.lookAhead(1) == SchemaLexer.LPARENTHESES) { //Initiate a new object
+                    PsiBuilder.Marker marker = builder.mark();
+                    consumeTokenAs(FIELD_NEWINSTANCE_NAME);
+                    parseAnnotationFieldArray();
+                    marker.done(FIELD_NEWINSTANCE);
+                    return;
+                } else { //Enum or empty instance value
+                    consumeTokenAs(FIELD_ENUM_OR_INSTANCE);
+                    return;
+                }
+            }
+            error(null, null, Construct.STATEMENT, "Unknown Type %s", builder.getTokenText());
         }
 
 
@@ -682,7 +667,7 @@ public class SchemaParser implements PsiParser {
                 return;
             }
             String response = getIdentifier();
-            consumeTokenAs(TYPE_NAME);
+            consumeTokenAs(TYPE_NAME_REFERENCE);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected command name after 'command %s'.", response);
@@ -691,26 +676,26 @@ public class SchemaParser implements PsiParser {
             String name = getIdentifier();
             consumeTokenAs(FIELD_NAME);
             if (!isToken(SchemaLexer.LPARENTHESES)) {
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected '(' after 'command %s %s'.", response, name);
                 return;
             }
             consumeTokenAs(null);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected command request after 'command %s %s('.", response, name);
                 return;
             }
             String request = getIdentifier();
-            consumeTokenAs(TYPE_NAME);
+            consumeTokenAs(TYPE_NAME_REFERENCE);
             if (!isToken(SchemaLexer.RPARENTHESES)) {
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected ')' after 'command %s %s(%s'.", response, name, request);
                 return;
             }
             consumeTokenAs(null);
             if (!isToken(SchemaLexer.SEMICOLON)) {
-                error(marker, FIELD_DEFINITION, Construct.STATEMENT,
+                error(marker, COMMAND_DEFINITION, Construct.STATEMENT,
                         "Expected ';' after 'command %s %s(%s)'.", response, name, request);
                 return;
             }
@@ -735,7 +720,7 @@ public class SchemaParser implements PsiParser {
             parseEnumContents();
             if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, ENUM_DEFINITION, Construct.BRACES,
-                      "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_ENUM, name);
+                        "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_ENUM, name);
                 return;
             }
             consumeTokenAs(null);
@@ -759,7 +744,7 @@ public class SchemaParser implements PsiParser {
             parseTypeContents();
             if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, TYPE_DEFINITION, Construct.BRACES,
-                      "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_TYPE, name);
+                        "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_TYPE, name);
                 return;
             }
             consumeTokenAs(null);
@@ -771,21 +756,21 @@ public class SchemaParser implements PsiParser {
             consumeTokenAs(KEYWORD);
             if (!isToken(SchemaLexer.IDENTIFIER)) {
                 error(marker, COMPONENT_DEFINITION, Construct.BRACES,
-                      "Expected identifier after '%s'.", KEYWORD_COMPONENT);
+                        "Expected identifier after '%s'.", KEYWORD_COMPONENT);
                 return;
             }
             String name = getIdentifier();
             consumeTokenAs(DEFINITION_NAME);
             if (!isToken(SchemaLexer.LBRACE)) {
                 error(marker, COMPONENT_DEFINITION, Construct.BRACES,
-                      "Expected '{' after '%s %s'.", KEYWORD_COMPONENT, name);
+                        "Expected '{' after '%s %s'.", KEYWORD_COMPONENT, name);
                 return;
             }
             consumeTokenAs(null);
             parseComponentContents();
             if (!isToken(SchemaLexer.RBRACE)) {
                 error(marker, COMPONENT_DEFINITION, Construct.BRACES,
-                      "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_COMPONENT, name);
+                        "Invalid '%s' inside %s %s.", getTokenText(), KEYWORD_COMPONENT, name);
                 return;
             }
             consumeTokenAs(null);
@@ -807,17 +792,17 @@ public class SchemaParser implements PsiParser {
                 parseAnnotation();
             } else {
                 error(null, null, Construct.TOP_LEVEL,
-                      "Expected '%s', '%s', '%s', '%s' or '%s' definition at top-level.",
-                      KEYWORD_PACKAGE, KEYWORD_IMPORT, KEYWORD_ENUM, KEYWORD_TYPE, KEYWORD_COMPONENT);
+                        "Expected '%s', '%s', '%s', '%s' or '%s' definition at top-level.",
+                        KEYWORD_PACKAGE, KEYWORD_IMPORT, KEYWORD_ENUM, KEYWORD_TYPE, KEYWORD_COMPONENT);
             }
         }
 
         public void parseSchemaFile(@NotNull IElementType root) {
-            PsiBuilder.Marker marker = builder.mark();
+            PsiBuilder.Marker outerMarker = builder.mark();
             while (builder.getTokenType() != null && !builder.eof()) {
                 parseTopLevelDefinition();
             }
-            marker.done(root);
+            outerMarker.done(root);
         }
     }
 }
