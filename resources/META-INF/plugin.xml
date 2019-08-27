@@ -1,8 +1,8 @@
-<idea-plugin version="2">
-  <id>com.improbable.spatialos.schema.intellij</id>
+<idea-plugin>
+  <id>com.hrzntsudio.spatialos.intellij</id>
   <name>SpatialOS Schema IntelliJ</name>
   <version>0.1</version>
-  <vendor email="support@improbable.io" url="http://spatial.improbable.io">Improbable</vendor>
+  <vendor email="support@hrznstudio.com" url="http://hrznstudio.com">Horizon Studio</vendor>
   <category>Custom Languages</category>
 
   <description><![CDATA[
