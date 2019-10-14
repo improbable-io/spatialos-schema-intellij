@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>com.hrzntsudio.spatialos.intellij</id>
   <name>SpatialOS Schema</name>
-  <version>0.1</version>
+  <version>0.2</version>
   <vendor email="support@hrznstudio.com" url="http://hrznstudio.com">Horizon Studio</vendor>
   <category>Custom Languages</category>
 
